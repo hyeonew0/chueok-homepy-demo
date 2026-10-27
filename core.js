@@ -20,7 +20,7 @@ function migrate(d) {
   Object.values(d.users).forEach(u => { if (!u.handle) u.handle = u.id; });
   return d;
 }
-// 탈퇴 30일 지난 사람의 글·사진·기록·손님글·댓글·신청을 지운다
+// 탈퇴 30일 지난 사람의 글·사진·기록·방문록·댓글·신청을 지운다
 function purge(d) {
   const gone = Object.values(d.users).filter(u => u.withdrawnAt && Date.now() - new Date(u.withdrawnAt) > 30 * 864e5).map(u => u.id);
   if (!gone.length) return d;
@@ -76,6 +76,7 @@ function parseSong(raw, author = "") {
   const q = s.match(/^(.*?)\s*['‘"“]([^'’"”]+)['’"”]\s*(.*)$/);
   if (q && q[2].trim()) { artist = q[1].trim(); title = q[2].trim(); }
   else { const p = s.match(/^(.+?)\s*(?:\s[-–—|]\s|_)\s*(.+)$/); if (p) { artist = p[1].trim(); title = p[2].trim(); } else title = s; }
+  if (artist && /가사|lyric/i.test(String(raw))) [artist, title] = [title, artist];  // 가사 영상은 '곡 – 가수' 순서
   if (!artist && / - Topic$/.test(author)) artist = author.replace(/ - Topic$/, "").trim();
   if (feat) artist = (artist ? artist : "") + `(feat.${feat})`;
   return { title: (title || String(raw || "")).slice(0, 40), artist: artist.slice(0, 30) };
@@ -113,7 +114,7 @@ function canSee(scope, owner) {
   if (m && m.id === owner) return true;
   return scope === "all" || (scope === "friends" && m && isFriend(owner, m.id));
 }
-// ---------- 안심 설정 (차단·항목별 공개·검색 숨기기·손님글 권한) ----------
+// ---------- 안심 설정 (차단·항목별 공개·검색 숨기기·방문록 권한) ----------
 const prv = u => (u && u.privacy) || {};
 const blocked = (a, b) => !!(user(a) && (user(a).blocked || []).includes(b));  // a 가 b 를 차단
 const eitherBlocked = (a, b) => blocked(a, b) || blocked(b, a);

@@ -1,7 +1,7 @@
 ﻿"use strict";
-// 홈피: 소식(레이아웃 템플릿)·기록·앨범·손님글·프로필·꾸미기(주인만)
+// 홈피: 소식(레이아웃 템플릿)·기록·앨범·방문록·프로필·꾸미기(주인만)
 
-const TABS = [["home", "i_sun", "소식"], ["diary", "i_letter", "기록"], ["photo", "i_camera", "앨범"], ["guest", "i_heart", "손님글"], ["profile", "i_star", "프로필"]];
+const TABS = [["home", "i_sun", "소식"], ["diary", "i_letter", "기록"], ["photo", "i_camera", "앨범"], ["guest", "i_heart", "방문록"], ["profile", "i_star", "프로필"]];
 
 function countVisit(u) {  // 하루에 한 사람당 한 번만 센다(주인 제외)
   const m = me(); if (m && m.id === u.id) return;
@@ -20,7 +20,7 @@ function countVisit(u) {  // 하루에 한 사람당 한 번만 센다(주인 �
 // 비교용 A안/B안: 주소 ?hv=b 또는 홈피 맨 아래 'A안·B안' 버튼(이 브라우저에 기억)
 const HV = () => { let v = "auto"; try { const q = new URLSearchParams(location.search).get("hv"); if (q) localStorage.setItem("chueok.hv", q); v = localStorage.getItem("chueok.hv") || "auto"; } catch (e) {} return v === "a" || v === "b" ? v : innerWidth <= 860 ? "b" : "a"; };
 // 칸 순서(꾸미기 › 칸 순서). 맨 위 제목 줄은 고정
-const SECS = [["room", "내 방", "b-room"], ["info", "소개·기분", "cv-info"], ["diary", "최근 기록", "b-diary"], ["album", "앨범", "b-album"], ["guest", "손님글", "b-guest"], ["friends", "놀러가 볼까?", "b-friends"]];
+const SECS = [["room", "내 방", "b-room"], ["info", "소개·기분", "cv-info"], ["diary", "최근 기록", "b-diary"], ["album", "앨범", "b-album"], ["guest", "방문록", "b-guest"], ["friends", "놀러가 볼까?", "b-friends"]];
 const secOrder = u => { const o = (u.secOrder || []).filter(k => SECS.some(s => s[0] === k)); return [...o, ...SECS.map(s => s[0]).filter(k => !o.includes(k))]; };
 ACT.hv = el => { try { localStorage.setItem("chueok.hv", el.dataset.v); } catch (e) {} refresh(); };
 function hompyFrame(u, tab, inner, tpl) {
@@ -31,7 +31,7 @@ function hompyFrame(u, tab, inner, tpl) {
   const sg = u.song || {}, songT = sg.title ? sg.title + (sg.artist ? " · " + sg.artist : "") : "";
   // 지금 듣는 노래 한 줄(지금 기분 위). 길면 core.js에서 흐르게 바꾼다
   const yid = ytEmbed(sg.url), auto = own || !m || m.settings.bgmAuto !== false;  // 남의 홈피 자동 재생은 보는 사람 설정
-  const np = songT ? `<div class="np5"><img src="img/i_mp3.png" alt="노래">${yid ? `<button class="np5-pp" data-act="bgm" aria-label="노래 재생" aria-pressed="false">▶️</button>` : ""}<span class="np5-t" title="${esc(songT)}"><span class="np5-s"><span>${esc(songT)}</span></span></span>${sg.url && isYoutube(sg.url) ? `<a class="lnk np5-v" href="${esc(sg.url)}" target="_blank" rel="noopener noreferrer" aria-label="공식 영상 보기">▶</a>` : ""}${own ? `<a class="bv sm np5-ch" href="#/h/${u.id}/deco?s=song" aria-label="노래 변경">변경</a>` : ""}</div>${yid ? `<div class="bgm5"><iframe id="bgm5" data-auto="${auto ? 1 : 0}" src="https://www.youtube-nocookie.com/embed/${yid}enablejsapi=1&autoplay=${auto ? 1 : 0}&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}" title="${esc(songT)} 공식 영상" allow="autoplay; encrypted-media" loading="eager"></iframe></div>` : ""}`
+  const np = songT ? `<div class="np5"><img src="img/i_mp3.png" alt="노래"><span class="np5-t" title="${esc(songT)}"><span class="np5-s"><span>${esc(songT)}</span></span></span>${yid ? `<button class="np5-pp" data-act="bgm" aria-label="노래 재생" aria-pressed="false">▶\uFE0E</button>` : ""}${own ? `<a class="bv sm np5-ch" href="#/h/${u.id}/deco?s=song" aria-label="노래 변경">변경</a>` : ""}</div>${yid ? `<div class="bgm5"><iframe id="bgm5" data-auto="${auto ? 1 : 0}" src="https://www.youtube-nocookie.com/embed/${yid}enablejsapi=1&autoplay=${auto ? 1 : 0}&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}" title="${esc(songT)} 공식 영상" allow="autoplay; encrypted-media" loading="eager"></iframe></div>` : ""}`
     : own ? `<div class="np5"><img src="img/i_mp3.png" alt=""><a class="lnk" href="#/h/${u.id}/deco?s=song">♪ 노래 고르기</a></div>` : "";
   const cover = `
     <section class="y-win ${tpl ? "b-cover " : ""}cover5">
@@ -97,16 +97,16 @@ function hHome(u) {
   const pool = Object.values(DB.users).filter(x => alive(x) && x.id !== u.id && (!m || x.id !== m.id) && findable(x));
   const sug = [...pool.filter(x => x.region === u.region), ...pool.filter(x => x.region !== u.region)].slice(0, 2);
   const inner = `
-    <div class="b-icons"><a href="#/h/${u.id}"><img src="${roomImg(u)}" alt=""><span>내 방</span></a><a href="#/h/${u.id}/diary"><img src="img/i_letter.png" alt=""><span>기록</span></a><a href="#/h/${u.id}/photo"><img src="img/i_camera.png" alt=""><span>앨범</span></a><a href="#/h/${u.id}/guest"><img src="img/i_heart.png" alt=""><span>손님글</span></a><a href="#/h/${u.id}/profile"><img src="img/i_cd.png" alt=""><span>프로필</span></a>${own ? `<a href="#/h/${u.id}/deco"><img src="img/i_bow.png" alt=""><span>꾸미기</span></a>` : ""}</div>
-    <section class="y-win b-room"><div class="y-title"><span class="px">my_room.bmp</span><b class="jua">${own ? "내 방" : `${esc(u.nick)}의 방`}</b><span class="y-more rh5">${own ? `<a class="bv sm" href="#/h/${u.id}/deco">🎀 꾸미기</a>` : `${!m ? `<a class="bv sm pri" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/profile?ask=1`)}">♡ 단짝 신청</a>` : isFriend(u.id, m.id) ? `<span class="badge5">♡ 단짝</span>` : DB.requests.some(r => r.from === m.id && r.to === u.id) ? `<span class="badge5 gray">신청 보냈어요</span>` : `<button class="bv sm pri" data-act="freqsend" data-id="${u.id}">♡ 단짝 신청</button>`}<a class="bv sm" href="#/h/${u.id}/guest" aria-label="손님글 남기기">💌 손님글</a>`}</span></div>
+    <div class="b-icons"><a href="#/h/${u.id}"><img src="${roomImg(u)}" alt=""><span>내 방</span></a><a href="#/h/${u.id}/diary"><img src="img/i_letter.png" alt=""><span>기록</span></a><a href="#/h/${u.id}/photo"><img src="img/i_camera.png" alt=""><span>앨범</span></a><a href="#/h/${u.id}/guest"><img src="img/i_heart.png" alt=""><span>방문록</span></a><a href="#/h/${u.id}/profile"><img src="img/i_cd.png" alt=""><span>프로필</span></a>${own ? `<a href="#/h/${u.id}/deco"><img src="img/i_bow.png" alt=""><span>꾸미기</span></a>` : ""}</div>
+    <section class="y-win b-room"><div class="y-title"><span class="px">my_room.bmp</span><b class="jua">${own ? "내 방" : `${esc(u.nick)}의 방`}</b><span class="y-more rh5">${own ? `<a class="bv sm" href="#/h/${u.id}/deco">🎀 꾸미기</a>` : `${!m ? `<a class="bv sm pri" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/profile?ask=1`)}">♡ 단짝 신청</a>` : isFriend(u.id, m.id) ? `<span class="badge5">♡ 단짝</span>` : DB.requests.some(r => r.from === m.id && r.to === u.id) ? `<span class="badge5 gray">신청 보냈어요</span>` : `<button class="bv sm pri" data-act="freqsend" data-id="${u.id}">♡ 단짝 신청</button>`}<a class="bv sm" href="#/h/${u.id}/guest" aria-label="방문록 남기기">💌 방문록</a>`}</span></div>
       <div class="room5">${roomScene(u)}${own ? `<button class="memo hand" data-act="memo" title="한 줄 메모 바꾸기">${esc(u.memo || "한 줄 메모를 남겨 보세요 ✎")}</button>` : u.memo ? `<span class="memo hand">${esc(u.memo)}</span>` : ""}</div>
       ${!m ? `<div class="cta5"><p class="hand">${esc(u.nick)}님 홈피에 놀러 왔어요 ♡</p><a class="btn-k" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/profile?ask=1`)}">💬 나도 만들고 단짝 신청하기</a><small class="gray">카카오로 3초면 돼요</small></div>` : ""}</section><!--ROOM_END-->
     <section class="y-win b-diary"><div class="y-title"><span class="px">diary.txt</span><b class="jua">최근 기록</b><a class="y-more" href="#/h/${u.id}/diary">더보기 ›</a></div>
       <ul class="lst5">${dys.map(d => `<li><a href="#/h/${u.id}/diary?d=${d.id}">${esc(d.title)}</a><em class="px">${md(d.at)}</em></li>`).join("") || `<li><span class="gray">${own ? "첫 기록을 남겨 보세요 ✎" : "아직 공개된 기록이 없어요"}</span></li>`}</ul></section>
     <section class="y-win b-album"><div class="y-title"><span class="px">photo.jpg</span><b class="jua">앨범</b><a class="y-more" href="#/h/${u.id}/photo">더보기 ›</a></div>
       <div class="alb5">${phs.map(p => `<figure><a href="#/h/${u.id}/photo?v=${p.id}"><img src="${safeSrc(p.src)}" alt="${esc(p.caption)}"></a><figcaption class="hand">${esc(maskBad(p.caption))}</figcaption></figure>`).join("") || `<p class="gray">사진이 아직 없어요</p>`}</div></section>
-    <section class="y-win b-guest"><div class="y-title"><span class="px">guestbook</span><b class="jua">손님글</b><a class="y-more" href="#/h/${u.id}/guest">전체 ${gbs.filter(g => !hiddenFromMe(g.author)).length} ›</a></div>
-      <div class="bub5s">${gbShow.map(g => `<div class="bub5"><img class="av" src="${avSrc(g.author)}" alt=""><p><b>${esc(nick(g.author))}</b>${g.secret ? "🔒 " : ""}${esc(shown(g.author, g.text))}</p></div>`).join("") || `<p class="gray">첫 손님글을 기다려요 ♡</p>`}</div></section>
+    <section class="y-win b-guest"><div class="y-title"><span class="px">guestbook</span><b class="jua">방문록</b><a class="y-more" href="#/h/${u.id}/guest">전체 ${gbs.filter(g => !hiddenFromMe(g.author)).length} ›</a></div>
+      <div class="bub5s">${gbShow.map(g => `<div class="bub5"><img class="av" src="${avSrc(g.author)}" alt=""><p><b>${esc(nick(g.author))}</b>${g.secret ? "🔒 " : ""}${esc(shown(g.author, g.text))}</p></div>`).join("") || `<p class="gray">첫 방문록을 기다려요 ♡</p>`}</div></section>
     <section class="y-win b-friends"><div class="y-title"><span class="px">friends</span><b class="jua">놀러가 볼까?</b><a class="y-more" href="#/go">랜덤방문 ›</a></div>
       <p class="vsub5">${own && u.region ? `같은 동네(${esc(u.region)}) · 요즘 홈피` : "요즘 홈피"}</p>
       <div class="sug5">${sug.map(x => `<a href="#/h/${x.id}"><img class="av" src="${avSrc(x.id)}" alt=""><span>${esc(x.nick)}</span></a>`).join("")}</div></section>`;
@@ -235,39 +235,39 @@ ACT.pview = el => {
     onOk: () => { if (!own) return; DB.photos = DB.photos.filter(x => x.id !== p.id); save(); toast("사진을 지웠어요."); refresh(withQ({ v: "" })); } });
 };
 
-// ---------- 손님글 ----------
+// ---------- 방문록 ----------
 function hGuest(u) {
   const m = me(), own = m && m.id === u.id;
   const list = DB.guests.filter(g => g.owner === u.id).sort((a, b) => b.at.localeCompare(a.at));
   const rel = id => { const r = DB.requests.find(x => x.from === id && x.to === u.id); return isFriend(u.id, id) ? "단짝" : r ? "단짝 신청 중" : ""; };
   const gp = prv(u).guest || "all", canWrite = own || (gp === "all" || (gp === "friends" && m && isFriend(u.id, m.id)));
-  const body = `<h3 class="sec-h jua">💌 손님글 <span class="sec-r">전체 ${list.filter(g => !hiddenFromMe(g.author)).length}${own ? ` · 쓰기: ${{ all: "누구나", friends: "단짝만", off: "닫음" }[gp]} <a class="lnk" href="#/my?sec=safe">바꾸기</a>` : ""}</span></h3>
-    ${!canWrite ? `<p class="warn5">${gp === "off" ? "주인이 손님글을 닫아 두었어요." : "단짝만 손님글을 남길 수 있는 홈피예요."}</p>` : `<form class="gw" data-form="guest"><img class="av" src="${m ? avSrc(m.id) : "img/p_beanie.png"}" alt=""><textarea class="gw-in hand" name="text" maxlength="300" placeholder="${m ? "놀러 왔으면 한 줄 남기고 가기 ♪" : "로그인하고 한 줄 남겨 주세요 ♪"}" aria-label="손님글"></textarea>
+  const body = `<h3 class="sec-h jua">💌 방문록 <span class="sec-r">전체 ${list.filter(g => !hiddenFromMe(g.author)).length}${own ? ` · 쓰기: ${{ all: "누구나", friends: "단짝만", off: "닫음" }[gp]} <a class="lnk" href="#/my?sec=safe">바꾸기</a>` : ""}</span></h3>
+    ${!canWrite ? `<p class="warn5">${gp === "off" ? "주인이 방문록을 닫아 두었어요." : "단짝만 방문록을 남길 수 있는 홈피예요."}</p>` : `<form class="gw" data-form="guest"><img class="av" src="${m ? avSrc(m.id) : "img/p_beanie.png"}" alt=""><textarea class="gw-in hand" name="text" maxlength="300" placeholder="${m ? "놀러 왔으면 한 줄 남기고 가기 ♪" : "로그인하고 한 줄 남겨 주세요 ♪"}" aria-label="방문록"></textarea>
       <div class="gw-f"><label class="chk"><input type="checkbox" name="secret"> 비밀로 하기</label><button class="pbtn sm">남기기</button></div></form>`}
     ${list.map(g => {
       if (hiddenFromMe(g.author)) return "";
-      if (!seeHidden(g)) return `<article class="gb lock"><div class="gb-h"><span class="lk">🚫</span><b>가려진 글</b><span class="d">${mdt(g.at)}</span></div><p>신고로 잠시 가려진 손님글이에요.</p></article>`;
+      if (!seeHidden(g)) return `<article class="gb lock"><div class="gb-h"><span class="lk">🚫</span><b>가려진 글</b><span class="d">${mdt(g.at)}</span></div><p>신고로 잠시 가려진 방문록이에요.</p></article>`;
       const see = !g.secret || (m && (m.id === g.owner || m.id === g.author)), mine = m && (m.id === g.owner || m.id === g.author);
       if (!see) return `<article class="gb lock"><div class="gb-h"><span class="lk">🔒</span><b>비밀글</b><span class="d">${mdt(g.at)}</span></div><p>주인과 글쓴이만 볼 수 있는 글이에요.</p></article>`;
       return `<article class="gb"><div class="gb-h"><img class="av" src="${avSrc(g.author)}" alt=""><b>${esc(nick(g.author))}</b>${rel(g.author) ? `<span class="rel">${rel(g.author)}</span>` : ""}${g.secret ? `<span class="rel">🔒 비밀</span>` : ""}<span class="d">${mdt(g.at)}</span>${user(g.author) && !user(g.author).withdrawnAt ? `<a class="go" href="#/h/${g.author}">🏠 놀러가기</a>` : ""}</div>
         ${isHidden(g) ? `<div class="warn5">🚫 신고로 다른 사람에게 가려져 있어요. ${m && m.id === g.author ? appealBtn(g) : ""}</div>` : ""}<p class="hand">${esc(shown(g.author, g.text))}</p>
         ${g.reply ? `<div class="reply"><b>${esc(u.nick)}</b> ${esc(g.reply)}</div>` : ""}
         <div class="acts">${own && !g.reply ? `<button class="lnkbtn" data-act="greply" data-id="${g.id}">답글</button>` : ""}${mine ? ` <button class="lnkbtn" data-act="gdel" data-id="${g.id}">지우기</button>` : ""}${m && m.id !== g.author ? ` <a href="#/report/guest:${g.id}">신고</a> <button class="lnkbtn" data-act="block" data-id="${g.author}">차단</button>` : ""}</div></article>`;
-    }).join("") || empty("첫 손님글을 남겨 주세요 ♡")}`;
-  return { body: hBody(u), title: `${u.title} · 손님글`, html: hompyFrame(u, "guest", win("guestbook", "손님글", body)) };
+    }).join("") || empty("첫 방문록을 남겨 주세요 ♡")}`;
+  return { body: hBody(u), title: `${u.title} · 방문록`, html: hompyFrame(u, "guest", win("guestbook", "방문록", body)) };
 }
 FORM.guest = (f, d) => {
   if (needLogin()) return;
   const t = (d.get("text") || "").trim(); if (!t) return toast("한 줄이라도 써 주세요 :)");
   const owner = byHandle(R.path[1])?.id; if (!owner) return;
   const gp = prv(user(owner)).guest || "all";
-  if (owner !== me().id && (eitherBlocked(owner, me().id) || gp === "off" || (gp === "friends" && !isFriend(owner, me().id)))) return toast("이 홈피에는 손님글을 남길 수 없어요.");
+  if (owner !== me().id && (eitherBlocked(owner, me().id) || gp === "off" || (gp === "friends" && !isFriend(owner, me().id)))) return toast("이 홈피에는 방문록을 남길 수 없어요.");
   DB.guests.unshift({ id: uid("g"), owner, author: me().id, text: t.slice(0, 300), secret: !!d.get("secret"), at: nowISO(), reply: "" });
-  if (user(owner).settings.notify.guest) addFeed(owner, me().id, "님이 손님글을 남겼어요.", `#/h/${owner}/guest`);
-  save(); toast("손님글을 남겼어요 ♡"); refresh();
+  if (user(owner).settings.notify.guest) addFeed(owner, me().id, "님이 방문록을 남겼어요.", `#/h/${owner}/guest`);
+  save(); toast("방문록을 남겼어요 ♡"); refresh();
 };
-ACT.greply = el => modal({ title: "답글", body: `<input class="inp5 grow" name="t" maxlength="200" required>`, ok: "달기", onOk: d => { const g = DB.guests.find(x => x.id === el.dataset.id); if (!g || !me() || g.owner !== me().id) return; g.reply = (d.get("t") || "").trim(); addFeed(g.author, me().id, "님이 내 손님글에 답글을 달았어요.", `#/h/${g.owner}/guest`); save(); refresh(); } });
-ACT.gdel = el => modal({ title: "손님글 지우기", body: "<p>이 손님글을 지울까요?</p>", ok: "지우기", danger: true, onOk: () => { const g = DB.guests.find(x => x.id === el.dataset.id), m = me(); if (!g || !m || (m.id !== g.owner && m.id !== g.author)) return; DB.guests = DB.guests.filter(x => x.id !== el.dataset.id); save(); refresh(); } });
+ACT.greply = el => modal({ title: "답글", body: `<input class="inp5 grow" name="t" maxlength="200" required>`, ok: "달기", onOk: d => { const g = DB.guests.find(x => x.id === el.dataset.id); if (!g || !me() || g.owner !== me().id) return; g.reply = (d.get("t") || "").trim(); addFeed(g.author, me().id, "님이 내 방문록에 답글을 달았어요.", `#/h/${g.owner}/guest`); save(); refresh(); } });
+ACT.gdel = el => modal({ title: "방문록 지우기", body: "<p>이 방문록을 지울까요?</p>", ok: "지우기", danger: true, onOk: () => { const g = DB.guests.find(x => x.id === el.dataset.id), m = me(); if (!g || !m || (m.id !== g.owner && m.id !== g.author)) return; DB.guests = DB.guests.filter(x => x.id !== el.dataset.id); save(); refresh(); } });
 
 // ---------- 프로필 ----------
 function hProfile(u) {
@@ -347,7 +347,7 @@ function hDeco(u) {
       <label class="fld pf-z"><span>크기</span><input type="range" min="1" max="3" step="0.05" value="${PF.z}" data-change="pfzoom" aria-label="사진 크기" aria-valuetext="${Math.round(PF.z * 100)}%"></label>
       <div class="dact5 left"><button class="bv pri" data-act="pfsave">이대로 저장</button><button class="bv" data-act="pfcancel">취소</button></div></div>`;
     } else {
-      inner = `<p class="lay-note">홈피 이름 옆 작은 칸, 손님글·댓글에 보이는 사진이에요. 안 올리면 내 캐릭터가 보여요.</p>
+      inner = `<p class="lay-note">홈피 이름 옆 작은 칸, 방문록·댓글에 보이는 사진이에요. 안 올리면 내 캐릭터가 보여요.</p>
       <div class="pf-now"><figure><img class="av pf-th" src="${avSrc(u.id)}" alt="작은 칸 미리보기"><figcaption>작은 칸</figcaption></figure><figure><img class="pf-full" src="${picSrc(u.id)}" alt="크게 보기 미리보기"><figcaption>누르면 보이는 사진</figcaption></figure></div>
       <div class="dact5 left"><label class="bv pri pf-up">📷 ${u.pic ? "다른 사진 올리기" : "사진 올리기"}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" class="sr" data-change="pfpick"></label>${u.pic ? `<button class="bv" data-act="pfdel">캐릭터로 돌아가기</button>` : ""}</div>
       <p class="ord-help">권장 크기: 정사각형 1080×1080px. 어떤 비율이든 올린 뒤 작은 칸에 보일 곳을 직접 맞춰요. 누르면 보이는 큰 사진은 자르지 않고 다 보여요.</p>
@@ -522,7 +522,7 @@ addEventListener("message", e => {
   let d; try { d = JSON.parse(e.data); } catch (x) { return; }
   const st = d.event === "onStateChange" ? d.info : d.event === "infoDelivery" && d.info && typeof d.info.playerState === "number" ? d.info.playerState : null;
   if (st == null) return; bgmState = st; const b = $(".np5-pp"); if (!b) return; const on = st === 1;
-  b.textContent = on ? "⏸️" : "▶️"; b.setAttribute("aria-pressed", on); b.setAttribute("aria-label", on ? "노래 멈추기" : "노래 재생");
+  b.textContent = on ? "❚❚" : "▶\uFE0E"; b.setAttribute("aria-pressed", on); b.setAttribute("aria-label", on ? "노래 멈추기" : "노래 재생");
 });
 
 // 영상(플레이리스트) 제목 알아내기: ① 유튜브 oEmbed ② 막히면(데모 링크 등) 보이지 않는 유튜브 플레이어가 보내는 영상 정보

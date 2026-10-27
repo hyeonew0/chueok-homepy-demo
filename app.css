@@ -603,3 +603,7 @@ body.bigtext .cv-info .dact5 .bv { font-size: 16px !important; min-height: 44px 
 .bgm5 { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; margin: 0; } .bgm5 iframe { width: 200px; height: 113px; }
 /* 줄노트 폰: 좌우 여백을 같게(오른쪽 쏠림), 빨간 세로선은 왼쪽 여백 안 */
 @media (max-width: 860px) { body.y2k.tpl-9 .tpl { padding: 22px 16px 20px 16px !important; background: #fffdf8 linear-gradient(90deg, transparent 7px, #f4a6b8 7px 9px, transparent 9px), repeating-linear-gradient(#fffdf8 0 27px, #d6e4f7 27px 28px) !important; } }
+
+/* 노래 재생/멈춤: 회색 둥근 네모 + 흰 글자(이모지 색이 기기마다 달라 글자로 그린다) */
+.np5-pp { width: 30px; height: 30px; border: 0; border-radius: 8px; background: #8e939b; color: #fff; font-size: 13px; font-family: system-ui, sans-serif; margin-left: 6px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.15); }
+.np5-pp[aria-pressed="true"] { background: #6b7079; font-size: 11px; letter-spacing: -1px; }

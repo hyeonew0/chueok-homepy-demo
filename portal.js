@@ -17,7 +17,7 @@ const ro = s => `${s}${jong(s) && jong(s) !== 8 ? "으로" : "로"}`;
 const eul = s => `${s}${jong(s) ? "을" : "를"}`;
 // 음원 파일 직링크는 받지 않는다(저작권)
 const isAudio = s => /\.(mp3|wav|m4a|flac|ogg|aac|wma)(\?|#|$)/i.test(s || "");
-// 탈퇴한 사람이 남긴 댓글·손님글 본문은 숨긴다
+// 탈퇴한 사람이 남긴 댓글·방문록 본문은 숨긴다
 const shown = (author, text) => user(author) && user(author).withdrawnAt ? "(탈퇴한 사용자의 글이에요)" : maskBad(text);
 const tagCls = (board, cat) => BOARDS[board] ?TAGC[Math.max(0, BOARDS[board].cats.indexOf(cat)) % TAGC.length] : "t-pur";
 const kstDate = () => { const k = kst(); return `${k.y}.${String(k.m).padStart(2, "0")}.${String(k.d).padStart(2, "0")} ${WD[k.wd] || ""}`; };
@@ -279,7 +279,7 @@ FORM.write = () => {
   W = null; toast("글을 올렸어요 ♡"); go(`#/p/${id}`);
 };
 
-// ---------- 신고 (게시글·댓글·앨범 사진·기록·손님글) ----------
+// ---------- 신고 (게시글·댓글·앨범 사진·기록·방문록) ----------
 // 대상 주소: #/report/<글id>, #/report/<글id>/<댓글id>, #/report/photo:<id> · diary:<id> · guest:<id>
 function rTarget(r) {
   if (r.type === "user") { const u = user(r.tid); return u ? { obj: u, author: u.id, title: `${u.nick}님 (사람 신고)`, where: "사용자", at: u.joinedAt || nowISO(), link: `#/h/${u.id}`, gone: !alive(u) || !!u.admin } : null; }
@@ -292,7 +292,7 @@ function rTarget(r) {
   const list = { photo: DB.photos, diary: DB.diaries, guest: DB.guests }[r.type]; if (!list) return null;
   const o = list.find(x => x.id === r.tid); if (!o) return null;
   const owner = o.owner, author = r.type === "guest" ? o.author : o.owner;
-  return { obj: o, list: r.type, author, title: o.caption || o.title || o.text, img: r.type === "photo" ? o.src : null, where: `${nick(owner)}의 ${{ photo: "앨범", diary: "기록", guest: "손님글" }[r.type]}`, at: o.at,
+  return { obj: o, list: r.type, author, title: o.caption || o.title || o.text, img: r.type === "photo" ? o.src : null, where: `${nick(owner)}의 ${{ photo: "앨범", diary: "기록", guest: "방문록" }[r.type]}`, at: o.at,
     link: r.type === "photo" ? `#/h/${owner}/photo` : r.type === "diary" ? `#/h/${owner}/diary?d=${o.id}` : `#/h/${owner}/guest`, gone: false };
 }
 const reportOwner = r => rTarget(r)?.author;
@@ -316,8 +316,8 @@ VIEWS.report = (a, b) => {
         <div class="rp-target"><img src="${t.img ? safeSrc(t.img) : charSrc(t.author)}" alt=""><div><b>${esc(t.title)}</b><em>${esc(t.where)} · ${esc(nick(t.author))} · ${md(t.at)}</em></div></div>
         <fieldset class="rp-list"><legend class="sr">신고 사유 (하나 고르기)</legend>${Object.entries(RS).map(([k, [tx]]) => `<label class="rad"><input type="radio" name="reason" value="${k}" required>${tx}</label>`).join("")}</fieldset>
         <textarea class="inp5 grow tall" name="detail" maxlength="500" placeholder="어떤 부분이 문제인지 알려 주세요 (권리 침해·기타는 꼭 써 주세요)" aria-label="자세한 내용"></textarea>
-        ${isUser ? `<div class="warn5">사람 신고는 운영자가 그 사람이 쓴 글·댓글·손님글을 확인해요. 신고한 사람이 누군지는 상대에게 알리지 않아요.</div>` : `<div class="warn5">권리 침해(초상권·아이 사진·저작권) 신고는 바로 가려지고(최대 30일), 쓴 사람에게 알림이 가요. 쓴 사람은 이의를 신청할 수 있어요.</div>`}
-        ${canBlock ? `<label class="chk"><input type="checkbox" name="autoblock" checked><span>🚫 신고하면서 <b>${esc(nick(t.author))}</b>님 차단하기<br><small class="gray">차단하면 서로의 홈피·글·댓글·손님글이 안 보이고, 단짝이면 단짝이 끊어져서 상대가 알 수도 있어요. 마이페이지 › 안심 설정에서 풀 수 있어요.</small></span></label>` : ""}
+        ${isUser ? `<div class="warn5">사람 신고는 운영자가 그 사람이 쓴 글·댓글·방문록을 확인해요. 신고한 사람이 누군지는 상대에게 알리지 않아요.</div>` : `<div class="warn5">권리 침해(초상권·아이 사진·저작권) 신고는 바로 가려지고(최대 30일), 쓴 사람에게 알림이 가요. 쓴 사람은 이의를 신청할 수 있어요.</div>`}
+        ${canBlock ? `<label class="chk"><input type="checkbox" name="autoblock" checked><span>🚫 신고하면서 <b>${esc(nick(t.author))}</b>님 차단하기<br><small class="gray">차단하면 서로의 홈피·글·댓글·방문록이 안 보이고, 단짝이면 단짝이 끊어져서 상대가 알 수도 있어요. 마이페이지 › 안심 설정에서 풀 수 있어요.</small></span></label>` : ""}
         <p class="warn5 strong">⚠ ${REPORT_WARN}</p>
         <div class="dact5"><a class="bv" href="${t.link}">취소</a><button class="bv pri">신고하기</button></div>
       </form>
@@ -431,13 +431,13 @@ VIEWS.my = () => {
       <div class="my5"><div class="purikura small"><img src="${avSrc(m.id)}" alt=""><span class="px">${esc(m.id)}</span></div>
         <div><b class="jua big">${esc(m.nick)}</b><p>추억홈피.kr/@${esc(m.handle || m.id)} · 카카오 로그인(데모)${m.region ? ` · ${esc(m.region)}` : ""}</p>
           <p><a class="bv" href="#/h/${m.id}/deco?s=pic">📷 프로필 사진 바꾸기</a> <a class="bv sm" href="#/my?sec=safe">🛡 안심 설정 바로 가기</a></p>
-          <div class="lcd"><div><span class="px dig">${pad4(m.friends.length)}</span><em>단짝</em></div><div><span class="px dig">${pad4(DB.guests.filter(g => g.owner === m.id).length)}</span><em>손님글</em></div><div><span class="px dig">${pad4(m.beads)}</span><em>내 구슬</em></div></div></div></div>
+          <div class="lcd"><div><span class="px dig">${pad4(m.friends.length)}</span><em>단짝</em></div><div><span class="px dig">${pad4(DB.guests.filter(g => g.owner === m.id).length)}</span><em>방문록</em></div><div><span class="px dig">${pad4(m.beads)}</span><em>내 구슬</em></div></div></div></div>
     </section>
     <section class="box"><div class="box-h"><span class="ic">⚙</span><h2 class="jua" style="font-size:18px">설정</h2></div>
       <form data-form="settings"><table class="ptbl set">
         <tr><th>새 글 공개 기본값</th><td>${SCOPES.map(([v, t]) => `<label class="rad"><input type="radio" name="scope" value="${v}" ${s.scope === v ? "checked" : ""}>${t}</label>`).join("")}</td></tr>
         <tr><th>글씨 크기</th><td>${[["", "보통"], ["1", "크게"]].map(([v, t]) => `<label class="rad"><input type="radio" name="big" value="${v}" ${(s.big ? "1" : "") === v ? "checked" : ""}>${t}</label>`).join("")}</td></tr>
-        <tr><th>알림</th><td><label class="chk"><input type="checkbox" name="n_guest" ${s.notify.guest ? "checked" : ""}> 손님글</label> · <label class="chk"><input type="checkbox" name="n_friend" ${s.notify.friend ? "checked" : ""}> 단짝 신청</label> · <label class="chk"><input type="checkbox" name="n_comment" ${s.notify.comment ? "checked" : ""}> 게시판 댓글</label> · <label class="chk"><input type="checkbox" name="n_visit" ${s.notify.visit !== false ? "checked" : ""}> 단짝 방문(놀러왔어요)</label></td></tr>
+        <tr><th>알림</th><td><label class="chk"><input type="checkbox" name="n_guest" ${s.notify.guest ? "checked" : ""}> 방문록</label> · <label class="chk"><input type="checkbox" name="n_friend" ${s.notify.friend ? "checked" : ""}> 단짝 신청</label> · <label class="chk"><input type="checkbox" name="n_comment" ${s.notify.comment ? "checked" : ""}> 게시판 댓글</label> · <label class="chk"><input type="checkbox" name="n_visit" ${s.notify.visit !== false ? "checked" : ""}> 단짝 방문(놀러왔어요)</label></td></tr>
         <tr><th>방문 기록</th><td><label class="chk"><input type="checkbox" name="hide_visits" ${s.hideVisits ? "checked" : ""}> 오늘·전체 방문자 수를 다른 사람에게 숨기기</label> <em>(나는 계속 볼 수 있어요)</em></td></tr>
         <tr><th>노래 자동 재생</th><td><label class="chk"><input type="checkbox" name="bgm_auto" ${s.bgmAuto !== false ? "checked" : ""}> 다른 홈피에 놀러 가면 그 홈피 노래를 자동으로 틀기</label> <em>(꺼도 ▶️를 누르면 들을 수 있어요)</em></td></tr>
         <tr><th>접속 표시</th><td><label class="chk"><input type="checkbox" name="hide_online" ${s.hideOnline ? "checked" : ""}> 내가 접속 중인지 다른 사람에게 숨기기</label></td></tr>
@@ -483,7 +483,7 @@ ACT.refund = () => { const m = me(); if (!m.beads) return toast("환불할 구�
 ACT.export = () => {
   const m = me();
   const myC = (list, where) => list.flatMap(x => x.comments.filter(c => c.author === m.id).map(c => ({ 어디: where(x), 내용: c.text, 시각: c.at })));
-  const data = { 내정보: m, 글: DB.posts.filter(p => p.author === m.id), 기록: DB.diaries.filter(d => d.owner === m.id), 앨범: DB.photos.filter(p => p.owner === m.id), 손님글: DB.guests.filter(g => g.owner === m.id || g.author === m.id),
+  const data = { 내정보: m, 글: DB.posts.filter(p => p.author === m.id), 기록: DB.diaries.filter(d => d.owner === m.id), 앨범: DB.photos.filter(p => p.owner === m.id), 방문록: DB.guests.filter(g => g.owner === m.id || g.author === m.id),
     내가_단_게시판_댓글: myC(DB.posts, p => p.title), 내가_단_기록_댓글: myC(DB.diaries, d => `${nick(d.owner)}의 기록 · ${d.title}`) };
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
@@ -524,13 +524,13 @@ function safeBox(m) {
   return `<section class="box" id="safe"><div class="box-h"><span class="ic">🛡</span><h2 class="jua" style="font-size:18px">안심 설정</h2><span class="sub">누가 무엇을 볼 수 있는지 정해요</span></div>
     <form data-form="safe"><table class="ptbl set">
       ${row("birthday", "생일 보여 주기")}${row("likes", "좋아하는 것")}${row("then", "그 시절 나")}${row("now", "요즘 나")}
-      <tr><th>손님글 쓰기</th><td>${[["all", "누구나"], ["friends", "단짝만"], ["off", "닫기"]].map(([v, t]) => `<label class="rad"><input type="radio" name="p_guest" value="${v}" ${sc("guest") === v ? "checked" : ""}>${t}</label>`).join("")}</td></tr>
+      <tr><th>방문록 쓰기</th><td>${[["all", "누구나"], ["friends", "단짝만"], ["off", "닫기"]].map(([v, t]) => `<label class="rad"><input type="radio" name="p_guest" value="${v}" ${sc("guest") === v ? "checked" : ""}>${t}</label>`).join("")}</td></tr>
       <tr><th>모르는 사람에게 내 홈피 보이기</th><td><label class="chk"><input type="checkbox" name="p_search" ${p.search !== false ? "checked" : ""}> 검색·오늘 인기 홈피·놀러가기·추천에 보이기</label> <em>(끄면 링크·단짝으로만 찾아와요)</em></td></tr>
       <tr><td colspan="2"><em>로그인하지 않은 사람에게는 ‘전체공개’로 둔 것만 보여요. 차단은 로그인한 상태에서 서로 안 보이게 해요. 단짝 홈피에 들르면 단짝에게 ‘놀러왔어요’ 알림이 가요(받는 사람이 위 설정의 알림에서 끌 수 있어요).</em></td></tr>
       <tr><td colspan="2"><button class="bv pri">안심 설정 저장</button></td></tr>
     </table></form>
     <h3 class="th-h jua">🚫 차단한 사람 ${bl.length}</h3>
-    <ul class="feed">${bl.map(id => `<li><img class="av" src="${avSrc(id)}" alt=""><span><b>${esc(nick(id))}</b> <em class="gray">서로의 홈피·글·댓글·손님글이 안 보이고, 단짝 신청도 막혀요</em></span><span class="ago"><button class="bv sm" data-act="unblock" data-id="${id}">차단 풀기</button></span></li>`).join("") || `<li class="gray">차단한 사람이 없어요. 손님글·댓글·프로필의 ‘차단’으로 막을 수 있어요.</li>`}</ul></section>`;
+    <ul class="feed">${bl.map(id => `<li><img class="av" src="${avSrc(id)}" alt=""><span><b>${esc(nick(id))}</b> <em class="gray">서로의 홈피·글·댓글·방문록이 안 보이고, 단짝 신청도 막혀요</em></span><span class="ago"><button class="bv sm" data-act="unblock" data-id="${id}">차단 풀기</button></span></li>`).join("") || `<li class="gray">차단한 사람이 없어요. 방문록·댓글·프로필의 ‘차단’으로 막을 수 있어요.</li>`}</ul></section>`;
 }
 FORM.safe = (f, d) => {
   applySafe(me(), d); save(); toast("안심 설정을 저장했어요. 위 ‘설정’을 바꿨다면 ‘설정 저장’도 눌러 주세요.");  // 다시 그리지 않아서 위 '설정' 칸에 바꾸던 값이 남는다
@@ -539,7 +539,7 @@ function applySafe(m, d) { const v = k => d.get("p_" + k); m.privacy = { birthda
 ACT.block = el => {
   if (needLogin()) return;
   const id = el.dataset.id, m = me(); if (!user(id) || id === m.id || user(id).admin) return;
-  modal({ title: `${nick(id)}님 차단`, body: `<p>차단하면 서로의 홈피·글·댓글·손님글이 보이지 않고, 단짝이면 끊어지며 단짝 신청도 막혀요. 상대에게 알림은 가지 않아요.</p>`, ok: "차단하기", danger: true,
+  modal({ title: `${nick(id)}님 차단`, body: `<p>차단하면 서로의 홈피·글·댓글·방문록이 보이지 않고, 단짝이면 끊어지며 단짝 신청도 막혀요. 상대에게 알림은 가지 않아요.</p>`, ok: "차단하기", danger: true,
     onOk: () => { blockUser(m, id); save(); toast("차단했어요. 마이페이지 › 안심 설정에서 풀 수 있어요."); refresh(); } });
 };
 // 차단: 단짝을 끊고 서로의 신청을 지운다(신고하면 자동으로도 불림)
