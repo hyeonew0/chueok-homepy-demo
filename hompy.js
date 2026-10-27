@@ -31,7 +31,7 @@ function hompyFrame(u, tab, inner, tpl) {
   const sg = u.song || {}, songT = sg.title ? sg.title + (sg.artist ? " · " + sg.artist : "") : "";
   // 지금 듣는 노래 한 줄(지금 기분 위). 길면 core.js에서 흐르게 바꾼다
   const yid = ytEmbed(sg.url), auto = own || !m || m.settings.bgmAuto !== false;  // 남의 홈피 자동 재생은 보는 사람 설정
-  const np = songT ? `<div class="np5"><img src="img/i_mp3.png" alt="노래"><span class="np5-t" title="${esc(songT)}"><span class="np5-s"><span>${esc(songT)}</span></span></span>${yid ? `<button class="np5-pp" data-act="bgm" aria-label="노래 재생" aria-pressed="false">▶\uFE0E</button>` : ""}${own ? `<a class="bv sm np5-ch" href="#/h/${u.id}/deco?s=song" aria-label="노래 변경">변경</a>` : ""}</div>${yid ? `<div class="bgm5"><iframe id="bgm5" data-auto="${auto ? 1 : 0}" src="https://www.youtube-nocookie.com/embed/${yid}enablejsapi=1&autoplay=${auto ? 1 : 0}&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}" title="${esc(songT)} 공식 영상" allow="autoplay; encrypted-media" loading="eager"></iframe></div>` : ""}`
+  const np = songT ? `<div class="np5"><img src="img/i_mp3.png" alt="노래"><span class="np5-t" title="${esc(songT)}"><span class="np5-s"><span>${esc(songT)}</span></span></span>${yid ? `<button class="np5-pp" data-act="bgm" aria-label="노래 재생" aria-pressed="false"><img src="img/btn_play_t${String(LAYOUTS[u.layout - 1] ? u.layout : 1).padStart(2, "0")}.png" alt=""></button>` : ""}${own ? `<a class="bv sm np5-ch" href="#/h/${u.id}/deco?s=song" aria-label="노래 변경">변경</a>` : ""}</div>${yid ? `<div class="bgm5"><iframe id="bgm5" data-auto="${auto ? 1 : 0}" src="https://www.youtube-nocookie.com/embed/${yid}enablejsapi=1&autoplay=${auto ? 1 : 0}&playsinline=1&rel=0&origin=${encodeURIComponent(location.origin)}" title="${esc(songT)} 공식 영상" allow="autoplay; encrypted-media" loading="eager"></iframe></div>` : ""}`
     : own ? `<div class="np5"><img src="img/i_mp3.png" alt=""><a class="lnk" href="#/h/${u.id}/deco?s=song">♪ 노래 고르기</a></div>` : "";
   const cover = `
     <section class="y-win ${tpl ? "b-cover " : ""}cover5">
@@ -522,7 +522,7 @@ addEventListener("message", e => {
   let d; try { d = JSON.parse(e.data); } catch (x) { return; }
   const st = d.event === "onStateChange" ? d.info : d.event === "infoDelivery" && d.info && typeof d.info.playerState === "number" ? d.info.playerState : null;
   if (st == null) return; bgmState = st; const b = $(".np5-pp"); if (!b) return; const on = st === 1;
-  b.textContent = on ? "❚❚" : "▶\uFE0E"; b.setAttribute("aria-pressed", on); b.setAttribute("aria-label", on ? "노래 멈추기" : "노래 재생");
+  { const im = $("img", b); im.src = im.src.replace(on ? "btn_play_" : "btn_pause_", on ? "btn_pause_" : "btn_play_"); }  // 레이아웃별 버튼 그림 b.setAttribute("aria-pressed", on); b.setAttribute("aria-label", on ? "노래 멈추기" : "노래 재생");
 });
 
 // 영상(플레이리스트) 제목 알아내기: ① 유튜브 oEmbed ② 막히면(데모 링크 등) 보이지 않는 유튜브 플레이어가 보내는 영상 정보

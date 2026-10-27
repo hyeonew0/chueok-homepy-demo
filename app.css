@@ -607,3 +607,9 @@ body.bigtext .cv-info .dact5 .bv { font-size: 16px !important; min-height: 44px 
 /* 노래 재생/멈춤: 회색 둥근 네모 + 흰 글자(이모지 색이 기기마다 달라 글자로 그린다) */
 .np5-pp { width: 30px; height: 30px; border: 0; border-radius: 8px; background: #8e939b; color: #fff; font-size: 13px; font-family: system-ui, sans-serif; margin-left: 6px; box-shadow: inset 0 -2px 0 rgba(0,0,0,.15); }
 .np5-pp[aria-pressed="true"] { background: #6b7079; font-size: 11px; letter-spacing: -1px; }
+/* 재생·멈춤 버튼: 디자이너가 Figma로 만든 그림(btn_play/btn_pause) */
+.np5-pp, .np5-pp[aria-pressed="true"] { width: 32px; height: 32px; padding: 0; border: 0; border-radius: 50%; background: none; box-shadow: none; }
+.np5-pp img { width: 32px; height: 32px; display: block; } .np5-pp:active img { transform: translateY(1px); }
+body.bigtext .np5-pp, body.bigtext .np5-pp img { width: 40px; height: 40px; }
+/* 재생·멈춤 버튼 60%로(사장님) — 누르는 칸은 36px 유지 */
+.np5-pp, .np5-pp[aria-pressed="true"] { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; margin-left: 2px; } .np5-pp img { width: 20px; height: 20px; } body.bigtext .np5-pp { width: 40px; height: 40px; } body.bigtext .np5-pp img { width: 24px; height: 24px; }
