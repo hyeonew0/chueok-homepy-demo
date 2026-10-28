@@ -46,9 +46,9 @@ function portal(active, main, aside) {
   <aside class="col">${aside}</aside>
 </div>
 <footer class="m-foot"><div class="wrap">
-  <span>🏘️ <a href="#/terms">이용약관</a> | <a href="#/privacy"><b>개인정보 처리방침</b></a> | <a href="#/help">이용 규칙·도움말</a> |<a href="#/admin">운영자 화면(데모)</a> | <button class="lnkbtn" data-act="reset">데모 데이터 처음으로</button></span>
+  <span>🏘️ <a href="#/terms">이용약관</a> | <a href="#/privacy"><b>개인정보 처리방침</b></a> | <a href="#/help">이용 규칙·도움말</a></span>
   <span>추억홈피 · 다른 서비스와 관계없는 독립 서비스 · since 2026 ★</span>
-  <span class="gray">운영: 상호·대표·사업자등록번호·주소·이메일 [사업자 등록 후 표시] · 문의: <a href="#/help">운영자에게 알리기</a></span>
+  <span class="gray">운영: 상호·대표·사업자등록번호·주소·이메일 실서비스 오픈 때 표시돼요 · 문의: <a href="#/help">운영자에게 알리기</a></span>
 </div></footer>`;
 }
 function welcomeBox() {
@@ -232,7 +232,7 @@ VIEWS.write = editId => {
         <div class="frow"><label for="wb">게시판</label><select class="sel5" id="wb" name="board" data-change="wboard" ${edit ? "disabled" : ""}>${boards.map(([k, b]) => `<option value="${k}" ${k === W.board ? "selected" : ""}>${b.name}</option>`).join("")}</select>
           <label for="wc">말머리</label><select class="sel5" id="wc" name="cat">${cats.map(c => `<option ${c === W.cat ? "selected" : ""}>${c}</option>`).join("")}</select></div>
         <div class="frow"><label for="wt">제목</label><input class="inp5 grow" id="wt" name="title" value="${esc(W.title)}" maxlength="60" required placeholder="제목 (2~60자)"></div>
-        <textarea class="edit5 hand" name="body" maxlength="5000" required placeholder="그 시절 이야기를 들려주세요 ♡ (5자 이상)" aria-label="내용">${esc(W.body)}</textarea>
+        <textarea class="edit5 hand" name="body" maxlength="5000" required placeholder="그 시절 이야기를 들려주세요 ♡ (5자 이상)" aria-label="내용">${esc(W.body)}</textarea>${SAFE_NOTE}
         <div class="att" id="watt">${W.photos.map((s, i) => `<span class="th"><img src="${safeSrc(s)}" alt="첨부 ${i + 1}"><button type="button" class="x" data-act="wrmphoto" data-i="${i}" aria-label="사진 빼기">×</button></span>`).join("")}
           ${W.photos.length < 4 ? `<label class="addph" title="사진 추가">+<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple data-change="wphoto" class="sr" aria-label="사진 추가 (최대 4장)"></label>` : ""}</div>
         <p class="ob-note">사진은 올리기 전에 작게 줄이고, 사진 속 촬영 위치 정보는 지워져요.</p>
@@ -417,7 +417,6 @@ FORM.contact = (f, d) => {
   save(); toast("접수했어요. 데모라 실제 운영자에게는 전달되지 않아요."); f.reset();
 };
 ACT.logout = () => { DB.me = null; save(); toast("로그아웃했어요. 또 놀러 와요 ♡"); go("#/"); };
-ACT.reset = () => modal({ title: "데모 데이터 처음으로", body: "<p>이 브라우저에 저장된 글·홈피·꾸미기를 모두 지우고 처음 상태로 돌릴까요?</p>", ok: "처음으로", danger: true, onOk: () => { DB = seed(); W = null; save(); try { sessionStorage.clear(); } catch (e) {} toast("처음 상태로 돌렸어요."); go("#/"); } });
 
 // ---------- 마이페이지 ----------
 VIEWS.my = () => {
@@ -430,7 +429,7 @@ VIEWS.my = () => {
   const main = `
     <section class="box"><div class="box-h"><span class="ic">🏠</span><h2 class="jua">마이페이지</h2></div>
       <div class="my5"><div class="purikura small"><img src="${avSrc(m.id)}" alt=""><span class="px">${esc(m.id)}</span></div>
-        <div><b class="jua big">${esc(m.nick)}</b><p>추억홈피.kr/@${esc(m.handle || m.id)} · 카카오 로그인(데모)${m.region ? ` · ${esc(m.region)}` : ""}</p>
+        <div><b class="jua big">${esc(m.nick)}</b><p>추억홈피.kr/@${esc(m.handle || m.id)} (예시&nbsp;주소) · 카카오 로그인(데모)${m.region ? ` · ${esc(m.region)}` : ""}</p>
           <p><a class="bv" href="#/h/${m.id}/deco?s=pic">📷 프로필 사진 바꾸기</a> <a class="bv sm" href="#/my?sec=safe">🛡 안심 설정 바로 가기</a></p>
           <div class="lcd"><div><span class="px dig">${pad4(m.friends.length)}</span><em>단짝</em></div><div><span class="px dig">${pad4(DB.guests.filter(g => g.owner === m.id).length)}</span><em>방문록</em></div><div><span class="px dig">${pad4(m.beads)}</span><em>내 구슬</em></div></div></div></div>
     </section>
@@ -442,7 +441,7 @@ VIEWS.my = () => {
         <tr><th>방문 기록</th><td><label class="chk"><input type="checkbox" name="hide_visits" ${s.hideVisits ? "checked" : ""}> 오늘·전체 방문자 수를 다른 사람에게 숨기기</label> <em>(나는 계속 볼 수 있어요)</em></td></tr>
         <tr><th>노래 자동 재생</th><td><label class="chk"><input type="checkbox" name="bgm_auto" ${s.bgmAuto !== false ? "checked" : ""}> 다른 홈피에 놀러 가면 그 홈피 노래를 자동으로 틀기</label> <em>(꺼도 ▶️를 누르면 들을 수 있어요)</em></td></tr>
         <tr><th>접속 표시</th><td><label class="chk"><input type="checkbox" name="hide_online" ${s.hideOnline ? "checked" : ""}> 단짝에게도 내 접속 중 숨기기</label> <em>(단짝이 아니면 원래 안 보여요)</em></td></tr>
-        <tr><th>홈피 주소</th><td><span class="inp addr sm5"><span class="pre">추억홈피.kr/@</span><input name="handle" value="${esc(m.handle || m.id)}" maxlength="15" data-input="idcheck" aria-label="홈피 주소" aria-describedby="idmsg" autocapitalize="off" spellcheck="false"><span class="ok" id="idmsg" aria-live="polite"></span></span> <em>(가입할 때 자동으로 만들었어요. 영문 소문자·숫자·_ 3~15자)</em></td></tr>
+        <tr><th>홈피 주소</th><td><span class="inp addr sm5"><span class="pre">추억홈피.kr/@</span><input name="handle" value="${esc(m.handle || m.id)}" maxlength="15" data-input="idcheck" aria-label="홈피 주소" aria-describedby="idmsg" autocapitalize="off" spellcheck="false"><span class="ok" id="idmsg" aria-live="polite"></span></span> <em>(예시 주소 · 가입할 때 자동으로 만들었어요. 영문 소문자·숫자·_ 3~15자)</em></td></tr>
         <tr><th>생일 날짜</th><td><select class="sel5" name="bm" aria-label="월"><option value="">월</option>${Array.from({ length: 12 }, (_, i) => `<option ${bm === i + 1 ? "selected" : ""}>${i + 1}</option>`).join("")}</select> <select class="sel5" name="bd" aria-label="일"><option value="">일</option>${Array.from({ length: 31 }, (_, i) => `<option ${bd === i + 1 ? "selected" : ""}>${i + 1}</option>`).join("")}</select> <em>(선택 · 누구에게 보일지는 아래 안심 설정에서)</em></td></tr>
         <tr><th>내 동네</th><td><select class="sel5" name="region" aria-label="내 동네"><option value="">선택 안 함</option>${Object.keys(REGIONS).map(r => `<option ${r === m.region ? "selected" : ""}>${r}</option>`).join("")}</select> <em>(선택 · 창밖 날씨에만 쓰고 다른 사람에겐 안 보여요)</em></td></tr>
         <tr><td colspan="2"><button class="bv pri">설정 저장</button></td></tr>
@@ -554,7 +553,9 @@ function blockUser(m, id) {
 ACT.unblock = el => { const m = me(); if (!m) return; modal({ title: `${nick(el.dataset.id)}님 차단 풀기`, body: "<p>차단을 풀면 서로의 홈피·글·댓글이 다시 보여요.</p>", ok: "차단 풀기", onOk: () => { m.blocked = (m.blocked || []).filter(x => x !== el.dataset.id); save(); toast("차단을 풀었어요."); refresh(); } }); };
 
 // ---------- 이용약관·개인정보 처리방침 (데모 초안 — 사업자 정보·위탁 업체는 정해지면 채운다, 변호사 확인 전) ----------
-const POLICY_TODO = `<span class="todo5">[정해지면 입력]</span>`;
+// B단계(실서비스) 전에 POLICY_TODO 자리를 채운다: 시행일, 환불 수수료, 위탁처(서버·결제), 보호책임자 이름·연락처, 접속기록 보관 기간
+const POLICY_TODO = `<span class="gray">실서비스 오픈 때 정해서 알려드려요</span>`;
+const SAFE_NOTE = `<p class="dnote5">실명·직장·연락처는 쓰지 마세요 · 특정인 저격은 신고 대상이에요.</p>`;  // 입력창 옆 저격·개인정보 주의(글쓰기·다이어리·방문록·프로필)
 const POLICY = {
   terms: { title: "이용약관", html: `
 <p class="gray">시행일 ${POLICY_TODO} · 데모용 초안이에요.</p>
@@ -578,7 +579,7 @@ const POLICY = {
 <tr><td>구슬 결제 시</td><td>결제·환불 기록(카드번호는 결제대행사만 가져요)</td></tr></table>
 <p>프로필 사진, 전화번호, 실명은 모으지 않아요. 사진 속 촬영 위치 정보는 올릴 때 지워요.</p>
 <h3>2. 쓰는 목적</h3><p>회원 확인과 만 19세 확인, 홈피·게시판 운영, 신고 처리와 부정 이용 막기, 구슬 결제·환불, (동의한 분만) 이벤트 알림.</p>
-<h3>3. 보관 기간</h3><ul><li>탈퇴하면 30일 뒤 지워요(그 전에 다시 로그인하면 되살아남).</li><li>법이 정한 기록은 그 기간만 따로 보관해요: 결제·환불 기록 5년, 소비자 불만 처리 기록 3년(전자상거래법), 접속 기록 3개월(통신비밀보호법) (기간 확인 필요).</li><li class="gray">위 보관·삭제는 실서비스에서 적용 예정이에요. 데모는 서버 없이 이 브라우저에만 저장해요.</li></ul>
+<h3>3. 보관 기간</h3><ul><li>탈퇴하면 30일 뒤 지워요(그 전에 다시 로그인하면 되살아남).</li><li>법이 정한 기록은 그 기간만 따로 보관해요: 결제·환불 기록 5년, 소비자 불만 처리 기록 3년(전자상거래법), 접속 기록(통신비밀보호법, 기간은 ${POLICY_TODO}).</li><li class="gray">위 보관·삭제는 실서비스에서 적용 예정이에요. 데모는 서버 없이 이 브라우저에만 저장해요.</li></ul>
 <h3>4. 다른 곳에 주기</h3><p>본인 동의나 법에 따른 요청이 없으면 다른 곳에 주지 않아요.</p>
 <h3>5. 맡기는 일(처리 위탁)</h3><table class="pt5"><tr><th>받는 곳</th><th>하는 일</th></tr><tr><td>카카오</td><td>로그인</td></tr><tr><td>${POLICY_TODO}</td><td>서버·데이터 보관</td></tr><tr><td>${POLICY_TODO}</td><td>구슬 결제</td></tr></table>
 <p>서버가 해외에 있으면 나라·업체·옮기는 항목을 여기에 적어요. 홈피의 유튜브 노래를 틀면 유튜브(구글)에 접속 정보가 전달돼요.</p>
@@ -587,7 +588,7 @@ const POLICY = {
 <h3>8. 안전 조치</h3><p>접근 권한 제한, 접속 기록 보관, 전송 구간 암호화, 비공개 글의 권한 검사를 서버에서 해요. <span class="gray">(실서비스에서 적용 예정 · 데모는 서버 없이 이 브라우저에만 저장해요)</span></p>
 <h3>9. 자동으로 모으는 것</h3><p>로그인 유지와 설정 저장에 브라우저 저장소를 써요. 광고 추적 쿠키는 쓰지 않아요.</p>
 <h3>10. 만 19세 미만</h3><p>만 19세 미만은 가입할 수 없고, 확인되면 바로 지워요.</p>
-<h3>11. 개인정보 보호책임자</h3><p>이름 ${POLICY_TODO} · 연락처 ${POLICY_TODO}</p>
+<h3>11. 개인정보 보호책임자</h3><p>이름·연락처는 ${POLICY_TODO}.</p>
 <h3>12. 바뀔 때</h3><p>내용이 바뀌면 시행 7일 전에 공지해요.</p>` },
 };
 VIEWS.policy = k => ({ body: "v4p y5p", title: POLICY[k].title, html: portal("", `<section class="box pol5"><div class="box-h"><span class="ic">📄</span><h2 class="jua">${POLICY[k].title}</h2></div>${POLICY[k].html}</section>`, welcomeBox()) });

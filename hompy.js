@@ -17,12 +17,11 @@ function countVisit(u) {  // 하루에 한 사람당 한 번만 센다(주인 �
   save();
 }
 
-// 비교용 A안/B안: 주소 ?hv=b 또는 홈피 맨 아래 'A안·B안' 버튼(이 브라우저에 기억)
+// 비교용 A안/B안: 주소 ?hv=a|b|auto (이 브라우저에 기억, QA·시연용)
 const HV = () => { let v = "auto"; try { const q = new URLSearchParams(location.search).get("hv"); if (q) localStorage.setItem("chueok.hv", q); v = localStorage.getItem("chueok.hv") || "auto"; } catch (e) {} return v === "a" || v === "b" ? v : innerWidth <= 860 ? "b" : "a"; };
 // 칸 순서(꾸미기 › 칸 순서). 맨 위 제목 줄은 고정
 const SECS = [["room", "내 방", "b-room"], ["info", "소개·기분", "cv-info"], ["diary", "최근 기록", "b-diary"], ["album", "앨범", "b-album"], ["guest", "방문록", "b-guest"], ["friends", "놀러가 볼까?", "b-friends"]];
 const secOrder = u => { const o = (u.secOrder || []).filter(k => SECS.some(s => s[0] === k)); return [...o, ...SECS.map(s => s[0]).filter(k => !o.includes(k))]; };
-ACT.hv = el => { try { localStorage.setItem("chueok.hv", el.dataset.v); } catch (e) {} refresh(); };
 function hompyFrame(u, tab, inner, tpl) {
   const m = me(), own = m && m.id === u.id, today = u.today.d === kst().key ? u.today.n : 0, k = kst();
   const visCnt = own || !u.settings.hideVisits;  // 주인이 방문자 수를 숨기면 남에게는 안 보인다
@@ -56,7 +55,7 @@ function hompyFrame(u, tab, inner, tpl) {
   const bar = `<header class="y-bar"><div class="y-in"><a class="y-logo" href="#/"><img src="img/i_star.png" alt=""><b class="jua">추억홈피</b><span class="px">since 2026</span></a>
     <span class="y-bar-r">${m ? `<a href="#/h/${m.id}">내 홈피</a>` : `<a href="#/login?next=${encodeURIComponent(`#/h/${u.id}`)}">로그인</a>`}<a href="#/go">놀러가기</a><a href="#/b/then">게시판</a>${m ? `<a href="#/my">마이페이지</a>` : ""}</span></div></header>
     <div class="y-marquee"><div class="mq-in"><span class="px">* welcome to my homepy *</span> <span class="jua">${own ? "오늘도 반짝반짝 빛나는 하루 ♡" : `${esc(u.nick)}님 홈피에 놀러 왔어요 ♡`}</span> <span class="px">* ${kstDate()} *</span></div></div>`;
-  const foot = `<footer class="y-foot"><div class="y-in"><span class="px">(c) 2026 chueok homepy</span> 추억홈피(가칭) · 데모 — 다른 서비스와 관계없는 독립 서비스입니다. <a href="#/terms">이용약관</a> · <a href="#/privacy"><b>개인정보 처리방침</b></a> <span class="hvsw">홈피 화면 비교: <button class="lnkbtn ${HV() === "a" ? "on" : ""}" data-act="hv" data-v="a">A안(표지 먼저)</button> · <button class="lnkbtn ${HV() === "b" ? "on" : ""}" data-act="hv" data-v="b">B+안(내 방 먼저)</button> · <button class="lnkbtn" data-act="hv" data-v="auto">자동(폰 B+·PC A)</button></span></div></footer>`;
+  const foot = `<footer class="y-foot"><div class="y-in"><span class="px">(c) 2026 chueok homepy</span> 추억홈피(가칭) · 데모 — 다른 서비스와 관계없는 독립 서비스입니다. <a href="#/terms">이용약관</a> · <a href="#/privacy"><b>개인정보 처리방침</b></a></div></footer>`;
   if (HV() === "b") {  // B안: 제목만 맨 위 → (소식 탭이면) 내 방 → 소개·기분·방문자 → 탭 → 나머지
     // 제목 줄: 작은 프리쿠라 + 테마 제목 + 방문자 수(TODAY·TOTAL)
     const head = `<section class="y-win cv-b"><div class="y-title"><span class="px">my_homepy.exe</span>${onlineTag(u)}<span class="y-btns" aria-hidden="true"><i>_</i><i>□</i><i>×</i></span></div>
@@ -155,7 +154,7 @@ function hDiary(u) {
     return days.has(d) ? `<a class="${cls}" href="${withQ({ day: d === sel ? "" : d, d: "" })}">${d}</a>` : `<span class="${cls}">${d}</span>`;
   }).join("")}</div>`;
   const form = own ? `<details class="dwrite" ${R.q.w ? "open" : ""}><summary class="pbtn">✏ 기록 쓰기</summary>
-    <form class="frm" data-form="diary"><input class="inp5 grow" name="title" maxlength="40" required placeholder="제목"><textarea class="edit5 hand" name="body" maxlength="3000" required placeholder="오늘 하루는 어땠나요?"></textarea>
+    <form class="frm" data-form="diary"><input class="inp5 grow" name="title" maxlength="40" required placeholder="제목"><textarea class="edit5 hand" name="body" maxlength="3000" required placeholder="오늘 하루는 어땠나요?"></textarea>${SAFE_NOTE}
       <div class="frow"><label>기분</label>${Object.keys(MOODS).map(k => `<label class="rad"><input type="radio" name="mood" value="${k}" ${k === u.mood ? "checked" : ""}>${MOODS[k]} ${k}</label>`).join("")}</div>
       <div class="frow"><label>날씨</label>${Object.keys(WEATHERS).map((k, i) => `<label class="rad"><input type="radio" name="weather" value="${k}" ${i === 0 ? "checked" : ""}>${WEATHERS[k]} ${k}</label>`).join("")}</div>
       <div class="frow"><label>공개</label>${SCOPES.map(([v, t]) => `<label class="rad"><input type="radio" name="scope" value="${v}" ${u.settings.scope === v ? "checked" : ""}>${t}</label>`).join("")}</div>
@@ -243,7 +242,7 @@ function hGuest(u) {
   const gp = prv(u).guest || "all", canWrite = own || (m && (gp === "all" || (gp === "friends" && isFriend(u.id, m.id))));
   const body = `<h3 class="sec-h jua">💌 방문록 <span class="sec-r">전체 ${list.filter(g => !hiddenFromMe(g.author)).length}${own ? ` · 쓰기: ${{ all: "누구나", friends: "단짝만", off: "닫음" }[gp]} <a class="lnk" href="#/my?sec=safe">바꾸기</a>` : ""}</span></h3>
     ${!m ? `<p class="warn5">로그인하면 남길 수 있어요. <a class="lnk" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/guest`)}">로그인</a></p>` : !canWrite ? `<p class="warn5">${gp === "off" ? "주인이 방문록을 닫아 두었어요." : "단짝만 방문록을 남길 수 있는 홈피예요."}</p>` : `<form class="gw" data-form="guest"><img class="av" src="${avSrc(m.id)}" alt=""><textarea class="gw-in hand" name="text" maxlength="300" placeholder="놀러 왔으면 한 줄 남기고 가기 ♪" aria-label="방문록"></textarea>
-      <div class="gw-f"><label class="chk"><input type="checkbox" name="secret"> 비밀로 하기</label><button class="pbtn sm">남기기</button></div></form>`}
+      <div class="gw-f"><label class="chk"><input type="checkbox" name="secret"> 비밀로 하기</label><button class="pbtn sm">남기기</button></div></form>${SAFE_NOTE}`}
     ${list.map(g => {
       if (hiddenFromMe(g.author)) return "";
       if (!seeHidden(g)) return `<article class="gb lock"><div class="gb-h"><span class="lk">🚫</span><b>가려진 글</b><span class="d">${mdt(g.at)}</span></div><p>신고로 잠시 가려진 방문록이에요.</p></article>`;
@@ -278,7 +277,7 @@ function hProfile(u) {
       <label class="fld"><span>한 줄 소개</span><input class="inp5 grow" name="intro" maxlength="40" value="${esc(u.intro)}"></label>
       <label class="fld"><span>좋아하는 것</span><input class="inp5 grow" name="likes" maxlength="40" value="${esc(u.likes)}"></label>
       <label class="fld"><span>그 시절 나</span><input class="inp5 grow" name="then" maxlength="60" value="${esc(u.then)}"></label>
-      <label class="fld"><span>요즘 나</span><input class="inp5 grow" name="now" maxlength="60" value="${esc(u.now)}"></label>
+      <label class="fld"><span>요즘 나</span><input class="inp5 grow" name="now" maxlength="60" value="${esc(u.now)}"></label>${SAFE_NOTE}
       <div class="dact5"><a class="bv" href="#/h/${u.id}/profile">취소</a><button class="bv pri">저장하기 ♡</button></div></form>`
     : `<div class="prof-top"><div class="purikura small"><img src="${avSrc(u.id)}" alt=""><span class="px">since ${new Date(u.joinedAt).getFullYear()}</span></div>
         <div><h2 class="jua">${esc(u.nick)}</h2><p class="hand">${esc(u.intro)}</p>

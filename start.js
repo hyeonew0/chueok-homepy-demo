@@ -74,17 +74,18 @@ VIEWS.start = step => {
       <h3 class="ob-h3 jua">캐릭터</h3>
       ${CHAR_GROUPS.map(([g, ks]) => `<p class="chg">${g}</p><div class="chars">${ks.map(k => `<label class="ch ${P.char === k ? "sel" : ""}"><input type="radio" name="char" value="${k}" ${P.char === k ? "checked" : ""} class="sr" data-change="pickcard" required><img src="img/p_${k}.png" alt=""><span>${CHARS[k][0]}</span><i>✔</i></label>`).join("")}</div>`).join("")}
       <h3 class="ob-h3 jua">방 분위기</h3>
-      <div class="rooms two">${[["l", "♡ 딸기우유 빈 방", "img/room_e02_s.png"], ["m", "★ 네이비 밤 빈 방", "img/room_e08_s.png"]].map(([k, n, img]) => `<label class="rm ${P.tone === k ? "sel" : ""}"><input type="radio" name="tone" value="${k}" ${P.tone === k ? "checked" : ""} class="sr" data-change="pickcard" required><img src="${img}" alt=""><span>${n}</span></label>`).join("")}</div>
+      <div class="rooms two">${[["l", "♡ 딸기우유 빈 방", "img/room_e02_s.png"], ["m", "★ 네이비 밤 빈 방", "img/room_e08_s.png"]].map(([k, n, img]) => `<label class="rm ${P.tone === k ? "sel" : ""}"><input type="radio" name="tone" value="${k}" ${P.tone === k ? "checked" : ""} class="sr" data-change="pickcard"><img src="${img}" alt=""><span>${n}</span></label>`).join("")}</div>
       <p class="ob-note">가구 3개가 놓인 빈 방으로 시작해요. 벽·바닥 색은 10가지 중에서 언제든 무료로 바꾸고, 다 꾸며진 방(러블리·스트릿)은 꾸미기에서 구슬로 살 수 있어요.</p>
       <h3 class="ob-h3 jua">글씨 크기</h3>
       <div class="frow">${[["", "보통"], ["1", "크게"]].map(([v, n]) => `<label class="rad"><input type="radio" name="big" value="${v}" ${(P.big ? "1" : "") === v ? "checked" : ""}>${n}</label>`).join("")}</div>
       <label class="fld"><span>닉네임 <small>(카카오 닉네임을 가져왔어요 · 바꿔도 돼요)</small></span><input class="inp" name="nick" value="${esc(P.nick)}" required minlength="2" maxlength="10"></label>
       ${askTarget(P.next) ? `<label class="chk"><input type="checkbox" name="askok" ${askDefault(P.next) ? "checked" : ""}><span>가입하면 <b>${esc(askTarget(P.next).nick)}</b>님께 단짝 신청 보내기<br><small class="gray">신청하면 상대에게 내 닉네임과 홈피가 보여요.</small></span></label><input type="hidden" name="askid" value="${askTarget(P.next).id}">` : ""}
       <p class="ob-note">홈피 주소는 자동으로 만들어요. 동네(창밖 날씨)·생일·주소는 나중에 마이페이지에서, 방·배경·옷은 꾸미기에서 바꿀 수 있어요.</p>
+      <p class="warn5" id="tonewarn" role="alert" hidden>방 분위기를 골라 주세요. (딸기우유 / 네이비 밤)</p>
       <div class="ob-nav"><a class="pbtn ghost" href="#/login${P.next ? `?next=${encodeURIComponent(P.next)}` : ""}">‹ 이전</a><button class="pbtn">완성하기 ✨</button></div></form>`);
 };
 // 카드형 라디오: 고른 카드에 sel 표시
-CHG.pickcard = el => { $$(`input[name="${el.name}"]`).forEach(i => i.closest("label").classList.toggle("sel", i.checked)); };
+CHG.pickcard = el => { if (el.name === "tone") $("#tonewarn")?.setAttribute("hidden", ""); $$(`input[name="${el.name}"]`).forEach(i => i.closest("label").classList.toggle("sel", i.checked)); };
 // 주소(=handle) 검사. self: 내 주소를 바꿀 때 내 것은 빼고 본다
 function idState(id, self) {
   if (!/^[a-z0-9_]{3,15}$/.test(id)) return [false, "영문 소문자·숫자·_ 3~15자"];
@@ -96,7 +97,7 @@ const autoId = () => { let id; do { id = "u" + Math.random().toString(36).slice(
 FORM.ob2 = (f, d) => {
   const P = DB.pending, nk = (d.get("nick") || "").trim(), ch = d.get("char"), tone = d.get("tone");
   if (!CHARS[ch]) return toast("캐릭터를 하나 골라 주세요.");
-  if (!["l", "m"].includes(tone)) return toast("방을 골라 주세요. (딸기우유 / 네이비 밤)");
+  if (!["l", "m"].includes(tone)) { const w = $("#tonewarn"); if (w) { w.hidden = false; w.scrollIntoView({ block: "nearest" }); } return; }
   if (nk.length < 2) return toast("닉네임은 2자 이상이에요.");
   if (nickReserved(nk)) return toast("운영자로 오해할 수 있는 닉네임(운영자·관리자·어드민 등)은 쓸 수 없어요.");
   const id = autoId(), st = tone === "m", t = kst();
@@ -120,7 +121,7 @@ function obDone(m) {
   return ob(0, "완성", `<h2 class="ob-h jua">🎉 ${esc(m.title)}가<br>생겼어요!</h2>
     <div class="done"><div class="mini-hp"><div class="mh-top"><span>오늘 <b class="or">0</b> · 지금까지 0</span><b class="jua">✦ ${esc(m.title)} ✦</b></div>
       <div class="mh-body"><img class="mh-av" src="${avSrc(m.id)}" alt=""><div class="mh-room">${roomScene(m)}</div></div></div>
-      <div class="addr-box"><span>추억홈피.kr/@${esc(m.handle)}</span><button class="pbtn ghost sm" data-act="copylink">링크 복사</button></div><p class="dnote5">데모라 친구 브라우저에선 이 홈피가 안 보여요.</p></div>
+      <div class="addr-box"><span>추억홈피.kr/@${esc(m.handle)} <small>(예시&nbsp;주소)</small></span><button class="pbtn ghost sm" data-act="copylink">링크 복사</button></div><p class="dnote5">데모라 친구 브라우저에선 이 홈피가 안 보여요.</p></div>
     <div class="later5"><b class="jua">나중에 해도 되는 것</b><ul>
       <li><a href="#/h/${m.id}/deco">🎀 방·배경·레이아웃 꾸미기</a></li>
       <li><a href="#/my">🌦 내 동네(창밖 날씨) · 생일 · 홈피 주소 바꾸기</a></li></ul></div>
@@ -147,7 +148,7 @@ ACT.storycard = async () => {
     const h = 520, w = ch.width * h / ch.height; g.drawImage(ch, 540 - w / 2, 1060 - h, w, h);
     g.fillStyle = "#e0559a"; g.textAlign = "center"; g.font = "88px Jua, sans-serif"; g.fillText(`✦ ${m.title} ✦`.slice(0, 18), 540, 250, 980);
     g.fillStyle = "#4a3a86"; g.font = "52px Jua, sans-serif"; g.fillText("내 홈피 놀러 와 ♡", 540, 1220);
-    g.font = "44px sans-serif"; g.fillText(`추억홈피.kr/@${m.handle}`, 540, 1320);
+    g.font = "44px sans-serif"; g.fillText(`추억홈피.kr/@${m.handle}`, 540, 1320); g.font = "32px sans-serif"; g.fillText("(예시 주소)", 540, 1370);
     const a = document.createElement("a"); a.href = c.toDataURL("image/png"); a.download = `추억홈피_${m.id}_스토리.png`; document.body.appendChild(a); a.click(); a.remove();
     toast("스토리용 그림을 저장했어요. 인스타 스토리에 올려 보세요 ♡");
   } catch (e) { toast("그림을 만들지 못했어요. 잠시 뒤 다시 해 주세요."); }
