@@ -51,12 +51,37 @@ function portal(active, main, aside) {
   <span class="gray">운영: 상호·대표·사업자등록번호·주소·이메일 실서비스 오픈 때 표시돼요 · 문의: <a href="#/help">운영자에게 알리기</a></span>
 </div></footer>`;
 }
+// ---------- 출석 구슬(사장님 지시 2026-10-29) ----------
+// shortcut: 한국 날짜(kst)지만 기기 시계 기준이라 시계를 바꾸면 여러 번 받을 수 있다 — 실서비스는 서버 시간으로
+const dayKey = (t = Date.now()) => kst(new Date(t)).key;  // YYYY-MM-DD(한국)
+// 구슬 잔액: beads(전체) 중 paidBeads(유료)를 뺀 나머지가 무료. 쓸 때는 무료부터(유료는 남은 전체를 넘지 않게)
+const int0 = v => Math.max(0, Math.floor(+v) || 0);  // 음수·NaN·문자열 방어
+const paidOf = m => Math.min(int0(m.paidBeads), int0(m.beads));
+const won = n => `${num(n * BEAD_WON)}원`;
+const priceTag = n => `구슬 ${n}개 <small class="won5">· ${won(n)}</small>`;
+// 이번 달(한국) 출석·광고로 받은 무료 구슬이 상한까지 얼마 남았나(초대 보상은 cap 표시가 없어 빠진다. v104 출석 기록은 cap 표시가 없어 이름으로 넣는다)
+const capLeft = m => { const k = kst(), mon = l => { const t = kst(new Date(l.at)); return t.y === k.y && t.m === k.m; };
+  return Math.max(0, FREE_MONTH_CAP - m.beadLog.filter(l => (l.cap || /^출석/.test(l.t)) && mon(l)).reduce((s, l) => s + l.n, 0)); };
+const attendState = m => { const a = m.attend || {}, today = a.last === dayKey(); return { today, streak: today || a.last === dayKey(Date.now() - 864e5) ? a.streak : 0 }; };
+const attendBtn = m => { if (!m) return `<button class="bv sm" data-act="attend">📅 출석하기 <em>(로그인 필요)</em></button>`; const s = attendState(m), hid = isHidden(m);
+  return `<button class="bv sm" data-act="attend" ${s.today || hid ? "disabled" : ""}>${s.today ? "✅ 오늘 출석 완료" : hid ? "📅 지금은 출석할 수 없어요" : `📅 출석하고 구슬 ${ATTEND.daily}개`}</button> <em class="gray">연속 ${s.streak}일째 · 7일마다 +${ATTEND.streak7} · 무료 구슬은 한 달 ${FREE_MONTH_CAP}개까지</em>`; };
+ACT.attend = () => {
+  if (needLogin()) return;
+  const m = me(), s = attendState(m);
+  if (s.today) return toast("오늘은 이미 출석했어요. 내일 또 와요 ♡");
+  if (isHidden(m)) return toast("신고 확인 중이라 잠시 출석 구슬을 받을 수 없어요.");
+  const streak = s.streak + 1, want = ATTEND.daily + (streak % 7 ? 0 : ATTEND.streak7), got = Math.min(want, capLeft(m));
+  m.attend = { last: dayKey(), streak }; m.beads += got;
+  if (got) m.beadLog.push({ t: want > ATTEND.daily ? "출석(7일 연속)" : "출석", n: got, paid: false, cap: true, at: nowISO() });
+  if (!save()) return;
+  toast(`출석 ${streak}일째!${got ? ` 구슬 ${got}개를 받았어요 ♡` : ""}${got < want ? " 이번 달 무료 구슬을 다 받았어요." : ""}`); refresh();
+};
 function welcomeBox() {
   const m = me();
-  return m ? `<section class="box welcome"><p><b>${esc(m.nick)}</b>님, 반가워요 ♡</p>
+  return m ? `<section class="box welcome"><p><b>${esc(m.nick)}</b>님, 반가워요 ♡</p><p>${attendBtn(m)}</p>
       <a class="btn-h" href="#/h/${m.id}">🏠 내 홈피 가기</a><a class="btn-k" href="#/write">✏ 글쓰기</a>
       <div class="minilinks"><a href="#/h/${m.id}/deco">꾸미기</a><a href="#/my">마이페이지</a><a href="#/go">놀러가기</a></div></section>`
-    : `<section class="box welcome"><p>추억홈피에 오신 것을 환영합니다!</p>
+    : `<section class="box welcome"><p>추억홈피에 오신 것을 환영합니다!</p><p>${attendBtn()}</p>
       <a class="btn-k" href="#/login">💬 카카오·네이버로 시작</a><a class="btn-h" href="#/login">🏠 내 홈피 만들기</a>
       <div class="minilinks"><a href="#/go">홈피 구경하기</a><a href="#/help">도움말</a></div></section>`;
 }
@@ -449,16 +474,21 @@ VIEWS.my = () => {
         <tr><td colspan="2"><button class="bv pri">설정 저장</button></td></tr>
       </table></form>
       <table class="ptbl set">
-        <tr><th>구슬 내역</th><td>${m.beadLog.slice(-4).reverse().map(l => `${esc(l.t)} ${l.n > 0 ? "+" : ""}${l.n}`).join(" · ") || "아직 없어요"} <button class="lnkbtn lnk" data-act="charge">구슬 충전(데모)</button> <em>(유료 ${m.beadLog.filter(l => l.paid).reduce((s, l) => s + l.n, 0)} · 무료 ${m.beadLog.filter(l => !l.paid && l.n > 0).reduce((s, l) => s + l.n, 0)})</em> <button class="lnkbtn lnk" data-act="refund">환불 신청</button></td></tr>
+        <tr><th>출석</th><td>${attendBtn(m)}</td></tr>
+        <tr><th>구슬 내역</th><td>${m.beadLog.slice(-4).reverse().map(l => `${esc(l.t)} ${l.n > 0 ? "+" : ""}${l.n}`).join(" · ") || "아직 없어요"} <button class="lnkbtn lnk" data-act="charge">구슬 충전(데모)</button> <em>(잔액 유료 ${paidOf(m)} · 무료 ${m.beads - paidOf(m)} · 무료부터 써요)</em> <button class="lnkbtn lnk" data-act="refund">환불 신청</button></td></tr>
         <tr><th>내 데이터</th><td><button class="bv" data-act="export">글·사진 전체 내려받기 (json)</button></td></tr>
         <tr><th>탈퇴</th><td><button class="lnkbtn lnk gray" data-act="withdraw">회원 탈퇴</button> <em>탈퇴하면 30일 뒤 모든 글·사진이 지워져요. 30일 안에 다시 로그인하면 되살아나요. 다른 회원에게 피해를 줘 이용 제한된 경우 1년간 다시 가입할 수 없어요.</em></td></tr>
       </table></section>
+    ${(() => { const st = invStat(m); return `<section class="box" id="invite"><div class="box-h"><span class="ic">🎁</span><h2 class="jua" style="font-size:18px">친구 초대</h2><span class="sub">홈피 공유 링크와 다른 초대 전용 링크예요</span></div>
+      <p>${esc(INVITE_NOTE)}</p><p class="gray">초대만으로 단짝이 되지는 않아요. 단짝은 서로 신청·수락해야 해요.</p>
+      <p><button class="btn-k" data-act="shareinv">💬 초대 링크 보내기</button> <button class="bv" data-act="copyinv">🔗 초대 링크 복사</button></p>
+      <p><b>내 초대 현황</b> 초대 성공 <b class="or">${st.ok}</b>명 / 대기 <b>${st.wait}</b>명 <em class="gray">(누가 가입했는지는 알려 드리지 않아요)</em></p></section>`; })()}
     ${safeBox(m)}
     ${(() => { const mine = DB.reports.filter(r => r.type !== "user" && reportOwner(r) === m.id && r.status !== "검토 중"); return mine.length ? `<section class="box" id="myreports"><div class="box-h"><span class="ic">🛡</span><h2 class="jua" style="font-size:18px">내 글에 들어온 신고 ${mine.length}</h2><span class="sub">신고한 사람은 알려 드리지 않아요</span></div><ul class="feed">${mine.map(r => { const t = rTarget(r); return `<li><span><b>${esc(String(t?.title || "(지워짐)").slice(0, 24))}</b> <em class="gray">${esc(t?.where || "")} · ${r.status}</em></span><span class="ago">${t?.obj && isHidden(t.obj) && r.status === "가림" ? appealBtn(t.obj) : ""}</span></li>`; }).join("")}</ul></section>` : ""; })()}
     <section class="box"><div class="box-h"><span class="ic">📝</span><h2 class="jua" style="font-size:18px">내가 쓴 글 ${mine.length} · 스크랩 ${scraps.length}</h2></div>
       ${boardTable([...mine.slice(0, 5), ...scraps.slice(0, 5)])}</section>`;
   const aside = `
-    ${reqs.length ? `<section class="box" id="reqs"><div class="box-h"><span class="ic">💞</span><h2 class="jua" style="font-size:18px">받은 단짝 신청 ${reqs.length}</h2>${reqs.length > 1 ? `<button class="bv sm pri" data-act="freqall" style="margin-left:auto">모두 수락</button>` : ""}</div><ul class="feed">${reqs.map(r => `<li><img class="av" src="${avSrc(r.from)}" alt=""><span><a href="#/h/${r.from}"><b>${esc(nick(r.from))}</b></a> ${esc(r.rel || "")}</span><span class="ago"><button class="bv sm pri" data-act="freq" data-id="${r.id}" data-ok="1">수락</button><button class="bv sm" data-act="freq" data-id="${r.id}">거절</button></span></li>`).join("")}</ul></section>` : ""}
+    ${reqs.length ? `<section class="box" id="reqs"><div class="box-h"><span class="ic">💞</span><h2 class="jua" style="font-size:18px">받은 단짝 신청 ${reqs.length}</h2>${reqs.length > 1 && reqs.some(r => canReach(user(r.from), m)) ? `<button class="bv sm pri" data-act="freqall" style="margin-left:auto">모두 수락</button>` : ""}</div><ul class="feed">${reqs.map(r => `<li><img class="av" src="${avSrc(r.from)}" alt=""><span><a href="#/h/${r.from}"><b>${esc(nick(r.from))}</b></a> ${esc(r.rel || "")}</span><span class="ago"><button class="bv sm pri" data-act="freq" data-id="${r.id}" data-ok="1">수락</button><button class="bv sm" data-act="freq" data-id="${r.id}">거절</button></span></li>`).join("")}</ul></section>` : ""}
     <section class="box"><div class="box-h"><span class="ic">💌</span><h2 class="jua" style="font-size:18px">새 소식</h2><button class="lnkbtn more" data-act="readall" style="margin-left:auto">모두 읽음</button></div>
       <ul class="feed">${feed.map(f => `<li class="${f.read ? "" : "unread"}"><img class="av" src="${avSrc(f.from)}" alt=""><a href="${esc(f.link)}" data-act="openfeed" data-id="${f.id}"><b>${esc(nick(f.from))}</b> ${esc(f.text)}</a><span class="ago">${ago(f.at)}</span></li>`).join("") || `<li>아직 새소식이 없어요.</li>`}</ul></section>`;
   return { body: "v4p y5p", title: "마이페이지", html: portal("", main, aside), after: () => { if (R.q.sec) $("#" + R.q.sec)?.scrollIntoView(); } };
@@ -478,10 +508,33 @@ FORM.settings = (f, d) => {
   const sf = $('form[data-form="safe"]'); if (sf) applySafe(m, new FormData(sf));
   save(); toast("설정과 안심 설정을 저장했어요."); refresh();
 };
-ACT.charge = () => isTeen(me()) ? modal({ title: "구슬 충전", body: `<p>만 19세 미만은 구슬을 충전할 수 없어요.</p><p class="gray">무료로 받은 구슬은 그대로 쓸 수 있어요.</p>`, ok: "닫기", cancel: "" }) : modal({ title: "구슬 충전 (데모)", body: `<p>데모라 실제 결제 없이 구슬을 넣어 드려요.</p><p class="gray">가격: 실서비스 가격 미정 · 산 지 7일 안 미사용분은 전액 환불, 유효기간 5년, 무료로 받은 구슬은 환불 대상이 아니에요.</p><div class="frow">${[30, 50, 100].map((n, i) => `<label class="rad"><input type="radio" name="n" value="${n}" ${i === 1 ? "checked" : ""}>구슬 ${n}</label>`).join("")}</div>`, ok: "충전하기",
-  onOk: d => { const m = me(), n = +d.get("n"); m.beads += n; m.beadLog.push({ t: "충전(데모)", n, paid: true, at: nowISO() }); save(); toast(`구슬 ${n}개를 넣었어요.`); refresh(); } });
-ACT.refund = () => { const m = me(); if (!m.beads) return toast("환불할 구슬이 없어요."); modal({ title: "환불 신청", body: `<p>쓰지 않은 구슬 <b>${m.beads}</b>개를 환불 신청할까요?</p><p class="gray">실서비스: 산 지 7일 안 미사용분은 전액, 그 뒤엔 수수료를 빼고 돌려드려요. 유료 구슬 유효기간은 5년이고, 서비스가 끝나면 남은 유료 구슬은 전액 돌려드려요. 무료로 받은 구슬은 환불 대상이 아니에요. 데모라 실제 환불은 없어요.</p>`, ok: "신청하기",
-  onOk: () => { if (!m.beads) return toast("환불할 구슬이 없어요."), false; m.beadLog.push({ t: "환불 신청", n: -m.beads, at: nowISO() }); m.beads = 0; save(); toast("환불 신청을 접수했어요."); refresh(); } }); };
+ACT.charge = () => isTeen(me()) ? modal({ title: "구슬 충전", body: `<p>만 19세 미만은 구슬을 충전할 수 없어요.</p><p class="gray">무료로 받은 구슬은 그대로 쓸 수 있어요.</p>`, ok: "닫기", cancel: "" }) : modal({ title: "구슬 충전 (데모)", body: `<p>데모라 실제 결제 없이 구슬을 넣어 드려요. (1구슬 = ${won(1)})</p><div class="frow">${CHARGE_PACKS.map(([n, b], i) => `<label class="rad"><input type="radio" name="n" value="${n}" ${i === 1 ? "checked" : ""}>구슬 ${n}개 · ${won(n)}${b ? ` <b class="or">(+${b} 보너스)</b>` : ""}</label>`).join("")}</div><p class="gray">산 지 7일 안 미사용분은 전액 환불, 유효기간 5년. 보너스 구슬은 무료 구슬이라 환불 대상이 아니에요.</p>`, ok: "충전하기",
+  onOk: d => { const m = me(), pk = CHARGE_PACKS.find(([n]) => n === +d.get("n")); if (!pk) return false; const [n, b] = pk;
+    const b0 = m.beads, p0 = m.paidBeads, L = m.beadLog.length;
+    m.beads += n + b; m.paidBeads = paidOf(m) + n; m.beadLog.push({ t: "충전(데모)", n, paid: true, at: nowISO() }); if (b) m.beadLog.push({ t: "충전 보너스", n: b, paid: false, at: nowISO() });
+    if (!save()) { m.beads = b0; m.paidBeads = p0; m.beadLog.length = L; return toast("저장하지 못해서 충전하지 않았어요. 저장 공간을 비우고 다시 해 주세요."); }
+    toast(`구슬 ${n + b}개를 넣었어요.`); refresh(); } });
+ACT.refund = () => { const m = me(); if (!paidOf(m)) return toast("환불할 유료 구슬이 없어요. 무료로 받은 구슬은 환불 대상이 아니에요."); modal({ title: "환불 신청", body: `<p>쓰지 않은 유료 구슬 <b>${paidOf(m)}</b>개(${won(paidOf(m))})를 환불 신청할까요?</p><p class="gray">실서비스: 산 지 7일 안 미사용분은 전액, 그 뒤엔 수수료를 빼고 돌려드려요. 유료 구슬 유효기간은 5년이고, 서비스가 끝나면 남은 유료 구슬은 전액 돌려드려요. 무료로 받은 구슬은 환불 대상이 아니에요. 데모라 실제 환불은 없어요.</p>`, ok: "신청하기",
+  onOk: () => { const p = paidOf(m); if (!p) return toast("환불할 유료 구슬이 없어요."), false; const b0 = m.beads, p0 = m.paidBeads, L = m.beadLog.length; m.beadLog.push({ t: "환불 신청", n: -p, paid: true, at: nowISO() }); m.beads -= p; m.paidBeads = 0;
+    if (!save()) { m.beads = b0; m.paidBeads = p0; m.beadLog.length = L; return toast("저장하지 못해서 환불 신청이 접수되지 않았어요. 다시 해 주세요."); }
+    toast("환불 신청을 접수했어요."); refresh(); } }); };
+// ---------- 친구 초대(사장님 결정 2026-10-29): 링크는 바뀌지 않는 무작위 초대 코드, 이름·닉네임은 넣지 않는다 ----------
+const invCode = m => m.invCode || (m.invCode = (() => { let c; do c = Math.random().toString(36).slice(2, 8); while (c.length < 6 || Object.values(DB.users).some(u => u.invCode === c)); return c; })());
+const invUrl = m => `${location.origin}${location.pathname}?inv=${invCode(m)}#/login`;
+const invStat = m => { const L = Object.values(DB.users).filter(u => u.inv && u.inv.by === m.id);
+  return { ok: L.filter(u => u.inv.st === "ok").length, wait: L.filter(u => u.inv.st === "wait" && Date.now() - Date.parse(u.inv.at) < INVITE.days * 864e5).length }; };
+ACT.shareinv = () => { const u = invUrl(me()); save(); share("추억홈피에서 그때 감성으로 같이 홈피 꾸미자 ♡", u); };  // 공유 문구에는 보상 얘기를 넣지 않는다
+ACT.copyinv = () => { const u = invUrl(me()); save(); copyText(u, "초대 링크를 복사했어요 ♡"); };
+const invByOk = by => !!by && alive(by) && !isHidden(by);  // 초대한 사람이 보상 대상인가(가입 배너·가입·꾸미기 판정 공통)
+// 초대받은 사람이 첫 꾸미기를 저장하면 판정: 7일 안·초대한 사람 살아 있고 안 가려짐·최대 인원 전이면 초대한 사람에게 구슬
+function invCheck(m) {
+  const v = m && m.inv; if (!v || v.st !== "wait") return;
+  const by = user(v.by), in7 = Date.now() - Date.parse(v.at) < INVITE.days * 864e5;
+  if (by && alive(by) && isHidden(by) && in7) return;  // 보류: 초대한 사람이 잠시 가려져 있으면 wait로 두고 가림이 풀린 뒤 다음 꾸미기 저장 때 다시 판정
+  const ok = invByOk(by) && !isHidden(m) && in7 && invStat(by).ok < INVITE.max;
+  v.st = ok ? "ok" : "no";
+  if (ok) { by.beads += INVITE.inviter; by.beadLog.push({ t: "친구초대(보냄)", n: INVITE.inviter, paid: false, at: nowISO() }); }
+}
 ACT.export = () => {
   const m = me();
   const myC = (list, where) => list.flatMap(x => x.comments.filter(c => c.author === m.id).map(c => ({ 어디: where(x), 내용: c.text, 시각: c.at })));
@@ -496,20 +549,22 @@ ACT.withdraw = () => modal({ title: "회원 탈퇴", body: `<p>정말 떠나시�
   onOk: () => { const m = me(); m.withdrawnAt = nowISO(); DB.me = null; save(); toast("탈퇴했어요. 30일 안에 다시 로그인하면 되살릴 수 있어요."); go("#/"); } });
 ACT.freqall = () => {
   const m = me(); if (!m) return;
-  const rs = DB.requests.filter((r, i, all) => r.to === m.id && user(r.from) && !user(r.from).withdrawnAt && !eitherBlocked(m.id, r.from) && all.findIndex(x => x.to === m.id && x.from === r.from) === i && canPair(user(r.from), m));
+  const rs = DB.requests.filter((r, i, all) => r.to === m.id && user(r.from) && !user(r.from).withdrawnAt && !eitherBlocked(m.id, r.from) && all.findIndex(x => x.to === m.id && x.from === r.from) === i && canReach(user(r.from), m));
   if (!rs.length) return isHidden(m) && toast("신고 확인 중이라 잠시 단짝 신청을 받을 수 없어요.");
   modal({ title: "단짝 신청 모두 수락", body: `<ul class="feed">${rs.map(r => `<li><img class="av" src="${avSrc(r.from)}" alt=""><span><b>${esc(nick(r.from))}</b>님 ${esc(r.rel || "")}</span></li>`).join("")}</ul><p>모두 <b>${rs.length}</b>명의 신청을 받을까요?</p>`, ok: "모두 수락",
-    onOk: () => { rs.forEach(r => { dropReq(m.id, r.from); const f = user(r.from); if (!m.friends.includes(f.id)) m.friends.push(f.id); if (!f.friends.includes(m.id)) f.friends.push(m.id); addFeed(f.id, m.id, "님이 단짝 신청을 받아 줬어요 ♡", `#/h/${m.id}`); });
+    onOk: () => { rs.forEach(r => acceptReq(m, r.from));
       save(); toast(`${rs.length}명과 단짝이 됐어요 ♡`); refresh(); } });
 };
 // 두 사람 사이의 신청은 방향과 상관없이 모두 지운다(중복·엇갈린 신청 정리)
 const dropReq = (a, b) => { DB.requests = DB.requests.filter(x => !((x.from === a && x.to === b) || (x.from === b && x.to === a))); };
+// 단짝 맺기(수락·모두 수락·서로 신청 공통): 신청 정리 → 중복 없이 서로 추가 → 상대에게 알림. 닿을 수 있는지는 부르는 쪽에서 본다
+function acceptReq(m, fromId) { const f = user(fromId); dropReq(m.id, fromId); if (!f) return; if (!m.friends.includes(f.id)) m.friends.push(f.id); if (!f.friends.includes(m.id)) f.friends.push(m.id); addFeed(f.id, m.id, "님이 단짝 신청을 받아 줬어요 ♡", `#/h/${m.id}`); }
 ACT.freq = el => {
   const r = DB.requests.find(x => x.id === el.dataset.id); if (!r || r.to !== me()?.id) return;  // 나에게 온 신청만
   if (eitherBlocked(r.to, r.from)) { dropReq(r.to, r.from); save(); toast("차단 관계라 받을 수 없는 신청이에요."); return refresh(); }
-  if (el.dataset.ok && user(r.from) && !canPair(user(r.from), me())) return toast(isHidden(me()) ? "신고 확인 중이라 잠시 단짝 신청을 받을 수 없어요." : TEEN_MSG);  // 신청은 남겨 두어 가림이 풀리면 다시 받을 수 있게
-  dropReq(r.to, r.from);  // 수락·거절 모두 두 사람 사이 신청을 한꺼번에 정리(중복 신청도)
-  if (el.dataset.ok && user(r.from)) { const m = me(); if (!m.friends.includes(r.from)) m.friends.push(r.from); if (!user(r.from).friends.includes(m.id)) user(r.from).friends.push(m.id); addFeed(r.from, m.id, "님이 단짝 신청을 받아 줬어요 ♡", `#/h/${m.id}`); toast("이제 단짝이에요 ♡"); }
+  if (el.dataset.ok && user(r.from) && !canReach(user(r.from), me())) return toast(isHidden(me()) ? "신고 확인 중이라 잠시 단짝 신청을 받을 수 없어요." : isHidden(user(r.from)) ? HIDDEN_U_MSG : TEEN_MSG);  // 신청은 남겨 두어 가림이 풀리면 다시 받을 수 있게
+  if (el.dataset.ok && user(r.from)) { acceptReq(me(), r.from); toast("이제 단짝이에요 ♡"); }
+  else dropReq(r.to, r.from);  // 수락·거절 모두 두 사람 사이 신청을 한꺼번에 정리(중복 신청도)
   save(); refresh();
 };
 ACT.readall = () => { DB.feed.forEach(f => f.to === DB.me && (f.read = true)); save(); refresh(); };
@@ -569,7 +624,7 @@ const POLICY = {
 <h3>제4조 (하면 안 되는 일)</h3><ul><li>남의 사진·실명·연락처를 동의 없이 올리기, 욕설·비방·괴롭힘</li><li>음란·불법 정보, 광고·판매 글, 음원 파일 올리기</li><li>서비스를 망가뜨리거나 다른 사람 계정을 쓰는 일</li></ul>
 <h3>제5조 (신고와 임시조치)</h3><p>권리 침해 신고가 들어오면 게시물을 최대 30일 가리고 쓴 사람에게 알려요. 쓴 사람은 이의를 신청할 수 있어요(정보통신망법 제44조의2).</p>
 <h3>제6조 (이용 제한)</h3><p>제4조를 어기면 경고, 글 가림, 이용 정지 순으로 제한할 수 있고, 이유를 알려 드려요. 다른 회원에게 피해를 줘 이용이 막힌 사람은 1년 동안 다시 가입할 수 없어요. 이걸 확인하려고 카카오·네이버 계정 정보를 알아볼 수 없게 바꿔서(해시) 1년만 보관해요.</p>
-<h3>제7조 (구슬)</h3><ul><li>구슬은 꾸미기 아이템을 사는 데 쓰는 서비스 안 재화예요. 현금으로 바꾸거나 남에게 줄 수 없어요.</li><li>산 지 7일 안의 쓰지 않은 구슬은 전액 환불해요. 그 뒤 남은 구슬도 환불을 신청할 수 있어요(수수료 ${POLICY_TODO}).</li><li>만 19세 미만은 구슬을 충전(결제)할 수 없어요.</li><li>구슬 유효기간은 산 날부터 5년이에요. 무료로 받은 구슬은 환불 대상이 아니에요.</li><li>서비스를 끝내면 쓰지 않은 유료 구슬은 전액 돌려드려요.</li><li class="gray">데모에서는 실제 결제가 없어요.</li></ul>
+<h3>제7조 (구슬)</h3><ul><li>구슬은 꾸미기 아이템을 사는 데 쓰는 서비스 안 재화예요. 현금으로 바꾸거나 남에게 줄 수 없어요.</li><li>산 지 7일 안의 쓰지 않은 구슬은 전액 환불해요. 그 뒤 남은 구슬도 환불을 신청할 수 있어요(수수료 ${POLICY_TODO}).</li><li>만 19세 미만은 구슬을 충전(결제)할 수 없어요.</li><li>구슬 유효기간은 산 날부터 5년이에요. 무료로 받은 구슬은 환불 대상이 아니에요.</li><li>서비스를 끝내면 쓰지 않은 유료 구슬은 전액 돌려드려요.</li><li>1구슬은 ${won(1)}이에요. 출석·이벤트·친구 초대로 받은 무료 구슬은 받은 날부터 1년 뒤 사라지고, 무료 구슬부터 먼저 써요. 출석으로 받는 무료 구슬은 한 달 ${FREE_MONTH_CAP}개까지예요.</li><li>친구 초대 보상은 ${esc(INVITE_NOTE)} 자기 자신 초대·탈퇴 후 재가입·같은 기기 중복 가입·신고로 가려진 계정은 보상이 없고, 부정한 방법으로 받은 것이 확인되면 회수할 수 있어요.</li><li class="gray">데모에서는 실제 결제가 없어요.</li></ul>
 <h3>제8조 (탈퇴)</h3><p>내 정보에서 언제든 탈퇴할 수 있어요. 30일 뒤 글·사진이 모두 지워지고, 그 전에 다시 로그인하면 되살아나요.</p>
 <h3>제9조 (서비스 변경·종료)</h3><p>서비스를 바꾸거나 끝낼 때는 30일 전에 공지해요.</p>
 <h3>제10조 (책임)</h3><p>회원이 올린 게시물의 책임은 쓴 사람에게 있어요. 운영자는 고의나 중대한 잘못이 없으면 회원끼리의 다툼에 책임지지 않아요.</p>
@@ -580,6 +635,7 @@ const POLICY = {
 <tr><td>가입(필수)</td><td>카카오: 회원 식별값·닉네임·출생연도 / 네이버: 회원 식별값·닉네임·출생연도 (가입한 곳 하나만)</td></tr>
 <tr><td>가입(선택)</td><td>이벤트·혜택 알림 받기 여부</td></tr>
 <tr><td>이용 중</td><td>올린 글·사진·방문록·댓글, 신고·문의 내용, 접속 기록</td></tr>
+<tr><td>친구 초대 시</td><td>초대 코드(무작위), 누가 누구를 초대했는지와 보상 지급 여부 — 보상 지급·부정 이용 확인에만 쓰고, 초대한 사람에게 가입한 사람이 누군지 알려 주지 않아요</td></tr>
 <tr><td>구슬 결제 시</td><td>결제·환불 기록(카드번호는 결제대행사만 가져요)</td></tr></table>
 <p>프로필 사진, 전화번호, 실명은 모으지 않아요. 사진 속 촬영 위치 정보는 올릴 때 지워요.</p>
 <h3>2. 쓰는 목적</h3><p>회원 확인과 만 14세 이상 확인, 이용 제한 회원의 재가입 막기, 홈피·게시판 운영, 신고 처리와 부정 이용 막기, 구슬 결제·환불, (동의한 분만) 이벤트 알림.</p>

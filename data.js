@@ -9,6 +9,14 @@ const BOARDS = {
   show: { name: "홈피 자랑", desc: "꾸민 내 홈피를 자랑해 주세요.", cats: ["내 방", "레이아웃", "배경"] },
   notice: { name: "공지", desc: "운영 소식과 이용 규칙.", cats: ["공지"], adminOnly: true },
 };
+const ATTEND = { daily: 1, streak7: 5 };  // 출석 구슬(10대도 받음). 7일 연속마다 +5 — 사장님 결정 2026-10-29
+// 구슬 값·충전·무료 상한·친구초대(사장님 결정 2026-10-29). 숫자는 여기 한 곳에서만 바꾼다
+const BEAD_WON = 100;                                   // 1구슬 = 100원
+const CHARGE_PACKS = [[30, 0], [50, 3], [100, 10]];     // [구슬, 보너스] — 원화는 구슬×BEAD_WON
+const FREE_MONTH_CAP = 100;                             // 출석·광고로 받는 무료 구슬 한 달 상한(성인·10대 공통). 초대 보상은 따로
+const INVITE = { friend: 10, inviter: 10, days: 7, max: 10 };  // 친구 가입 즉시 10, 친구가 7일 안에 첫 꾸미기 하면 초대한 사람 10, 1인 최대 10명
+const INVITE_NOTE = `친구가 이 링크로 가입하면 친구 ${INVITE.friend}구슬, 친구가 ${INVITE.days}일 안에 첫 꾸미기를 마치면 나도 ${INVITE.inviter}구슬, 최대 ${INVITE.max}명. 무료 구슬은 1년 뒤 사라져요.`;
+const INVITE_FRIEND_NOTE = `이 링크로 가입하면 구슬 ${INVITE.friend}개를 받아요. 무료 구슬은 1년 뒤 사라져요.`;  // 가입하는 친구에게 보여 주는 문구
 const TAGC = ["t-pink", "t-blue", "t-teal", "t-rose", "t-yel", "t-pur"];
 
 const CHARS = {  // 그림 p_<key>.png, 이름, 구슬 가격
@@ -34,7 +42,7 @@ const ROOMS = {
   l: ["러블리 방", "하트 침대 · 라바 램프 · 바람 의자", "img/room5.png"],
   m: ["스트릿 방", "게임 PC · 기타 · 빈백 · 야경", "img/room5m.png"],
 };
-const ROOM_PRICE = 150;  // 다 꾸며진 방(러블리·스트릿)은 구슬 상품. 빈 방은 무료
+const ROOM_PRICE = 90;   // 다 꾸며진 방(러블리·스트릿)은 구슬 상품. 빈 방은 무료
 const EROOMS = ["라벤더", "딸기우유", "민트", "하늘", "레몬", "피치", "크림", "네이비 밤", "체리", "콘크리트"];  // 빈 방 벽·바닥 10종 img/room_eNN.png
 const FURN = {  // 이름, 방(1024px 기준) 안에서 보일 너비, 구슬 가격
   bed_pink: ["하트 침대", 270, 20], bed_navy: ["네이비 체크 침대", 275, 20], desk_pc: ["브라운관 PC 책상", 250, 15],
@@ -60,13 +68,13 @@ const REGIONS = {  // 시·도 대표 좌표 (창밖 날씨용)
 const REPORT_REASONS = {
   face: ["내 얼굴이 동의 없이 올라왔어요 (초상권)", true], abuse: ["욕설·비방·명예훼손", false], ad: ["광고·도배", false],
   child: ["아이(미성년자)가 나온 사진이에요", true], illegal: ["음란·불법 정보", false], copy: ["저작권 침해", true],
-  harass: ["괴롭힘·저격", true], doxx: ["신상 노출(실명·연락처·주소)", true], etc: ["기타", false],
+  harass: ["괴롭힘·저격", true], doxx: ["신상 노출(실명·연락처·주소)", true], invite: ["초대·가입 강요", false], invspam: ["초대 링크 도배", false], etc: ["기타", false],
 };  // true = 권리 침해 신고라 바로 가림(최대 30일)
 // 사람(계정) 신고 사유 — 글이 아니라 사람의 행동을 신고한다
 const USER_REPORT_REASONS = {
   harass: ["괴롭힘·스토킹·따라다님", false], abuse: ["욕설·비방·명예훼손", false], fake: ["다른 사람인 척해요 (사칭)", false],
   spam: ["광고·도배 계정", false], illegal: ["음란·불법 정보", false], minor: ["만 14세 미만으로 보여요", true],
-  sexual: ["성적 접근·만남 요구", true], money: ["돈 요구·사기", false], contact: ["연락처·주소 요구", true], etc: ["기타", false],
+  sexual: ["성적 접근·만남 요구", true], money: ["돈 요구·사기", false], contact: ["연락처·주소 요구", true], invite: ["초대·가입 강요", false], invspam: ["초대 링크 도배", false], etc: ["기타", false],
 };  // true = 긴급(10대 보호): 바로 가림(검색·추천에서 빠지고 단짝 신청·방문록 쓰기 막힘) + 운영자 목록 맨 위
 // 신고하는 화면 모두에 넣는 안내(사장님 지시)
 const REPORT_WARN = "사실대로 한 신고는 걱정하지 않으셔도 돼요. 다만 근거 없이 의도적으로 한 신고(허위·보복·괴롭힘 목적)는 확인 후 경고·이용 제한 등 조치될 수 있어요.";
@@ -82,7 +90,7 @@ function seed() {
     furn: { ...PRESET.l }, furnOwned: [...FURN_START], friends: [], today: { d: "", n: 0 }, total: 0,
     settings: { scope: "friends", notify: { guest: true, friend: true, comment: false } }, joinedAt: ago(200), ...extra,
   };
-  mk("haneul", "하늘소녀", "beanie", "l", 1, 1, "서울", { title: "하늘소녀의 홈피", intro: "그때도, 지금도 좋은 사람들과 ♪", total: 58317, demoOnline: true });
+  mk("haneul", "하늘소녀", "beanie", "l", 1, 1, "서울", { title: "하늘소녀의 홈피", intro: "그때도, 지금도 좋은 사람들과 ♪", total: 58317, demoOnline: true, invCode: "k7q2xm" });  // 초대 코드는 무작위(QA용으로 하늘소녀만 고정)
   mk("roki", "로키", "emo", "m", 6, 4, "부산", { intro: "음악이 있는 행복한 일상", total: 41022, demoOnline: true, song: { title: "비 오는 날 듣기 좋은 노래", artist: "창가 가수", url: "" } });
   mk("lulu", "달콤한루루", "pigtail", "l", 2, 5, "서울", { intro: "지금도 예쁜 추억을 만들고 있어요", total: 36110 });
   mk("windmill", "바람개비", "cap", "m", 7, 7, "경기", { intro: "좋은 추억은 언제나, 여기에 …", total: 29870 });

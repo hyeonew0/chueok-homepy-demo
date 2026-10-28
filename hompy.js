@@ -116,7 +116,7 @@ ACT.memo = () => { const m = me(); modal({ title: "한 줄 메모", body: `<inpu
 ACT.sharemine = () => modal({ title: "친구에게 알리기", body: `<p>꾸민 홈피를 친구들에게 보여 주세요 ♡</p>
   <button type="button" class="btn-k" data-act="sharehome">💬 카톡·밴드로 보내기</button>
   <button type="button" class="bv" data-act="copylink">🔗 링크 복사</button>
-  <button type="button" class="bv" data-act="storycard">📷 인스타 스토리용 그림 저장</button><p class="dnote5">데모라 친구 브라우저에선 이 홈피가 안 보여요.</p>`, ok: "닫기", cancel: "" });
+  <button type="button" class="bv" data-act="storycard">📷 인스타 스토리용 그림 저장</button><a class="bv" href="#/my?sec=invite">🎁 친구 초대 링크는 마이페이지에서</a><p class="dnote5">데모라 친구 브라우저에선 이 홈피가 안 보여요.</p>`, ok: "닫기", cancel: "" });
 ACT.mood = () => { const m = me(); modal({ title: "지금 기분", body: `<div class="moods">${Object.entries(MOODS).map(([k, e]) => `<label class="rad"><input type="radio" name="m" value="${k}" ${k === m.mood ? "checked" : ""}>${e} ${k}</label>`).join("")}</div>`, ok: "바꾸기", onOk: d => setMood(m, d.get("m")) }); };
 function setMood(u, mood) {
   if (!MOODS[mood]) return;
@@ -130,8 +130,8 @@ ACT.freqsend = el => {
   const to = el.dataset.id, m = me();
   if (DB.requests.some(r => r.from === m.id && r.to === to)) return toast("이미 신청했어요. 상대가 받아 주면 단짝이 돼요.");
   const back = DB.requests.find(r => r.from === to && r.to === m.id);
-  if (back && canPair(user(to), m)) { DB.requests = DB.requests.filter(r => r !== back); m.friends.push(to); user(to).friends.push(m.id); save(); toast("서로 신청해서 바로 단짝이 됐어요 ♡"); return refresh(); }  // 10대가 먼저 보낸 신청은 받아 줄 수 있다
-  if (!canReach(m, user(to))) return toast(eitherBlocked(m.id, to) ? "차단 관계라 단짝 신청을 할 수 없어요." : isHidden(m) ? "신고 확인 중이라 잠시 단짝 신청을 할 수 없어요." : `${TEEN_MSG} 10대 회원이 먼저 신청하면 받아 줄 수 있어요.`);
+  if (back && alive(user(to)) && canReach(user(to), m)) { acceptReq(m, to); save(); toast("서로 신청해서 바로 단짝이 됐어요 ♡"); return refresh(); }  // 10대가 먼저 보낸 신청은 받아 줄 수 있다
+  if (!canReach(m, user(to))) return toast(eitherBlocked(m.id, to) ? "차단 관계라 단짝 신청을 할 수 없어요." : isHidden(m) ? "신고 확인 중이라 잠시 단짝 신청을 할 수 없어요." : isHidden(user(to)) ? HIDDEN_U_MSG : `${TEEN_MSG} 10대 회원이 먼저 신청하면 받아 줄 수 있어요.`);
   modal({ title: `${nick(to)}님께 단짝 신청`, body: `<label class="fld"><span>어떤 사이예요? (선택)</span><input class="inp5 grow" name="rel" maxlength="12" placeholder="예: 고딩 짝꿍"></label>`, ok: "신청하기 ♡",
     onOk: d => { DB.requests.push({ id: uid("q"), from: m.id, to, rel: (d.get("rel") || "").trim(), at: nowISO() }); if (user(to).settings.notify.friend) addFeed(to, m.id, "님이 단짝을 신청했어요.", "#/my"); save(); toast("단짝 신청을 보냈어요 ♡"); } });
 };
@@ -315,14 +315,14 @@ function hDeco(u) {
   if (s === "room") {
     const p2 = i => String(i).padStart(2, "0");
     inner = `<h3 class="th-h jua">빈 방 <span class="fsub">무료 · 마음대로 바꿔요</span></h3><div class="rpick epick">${EROOMS.map((n, i) => card(`img/room_e${p2(i + 1)}_s.png`, p2(i + 1), n, "", u.room === "e" && (EROOMS[u.ebg - 1] ? u.ebg : 1) === i + 1, "setebg", i + 1)).join("")}</div>
-      <h3 class="th-h jua">꾸며진 방 <span class="fsub">구슬 ${ROOM_PRICE}개 · 한 번 사면 계속</span></h3><div class="rpick">${["l", "m"].map((k, i) => card(ROOMS[k][2], "S" + (i + 1), ROOMS[k][0], ROOMS[k][1], u.room === k, "setroom", k, ownRoom(u, k) ? (u.room === k ? "" : `<span class="pr5 have">보유</span>`) : `<span class="pr5">구슬 ${ROOM_PRICE}개</span>`)).join("")}</div>
+      <h3 class="th-h jua">꾸며진 방 <span class="fsub">${priceTag(ROOM_PRICE)} · 한 번 사면 계속</span></h3><div class="rpick">${["l", "m"].map((k, i) => card(ROOMS[k][2], "S" + (i + 1), ROOMS[k][0], ROOMS[k][1], u.room === k, "setroom", k, ownRoom(u, k) ? (u.room === k ? "" : `<span class="pr5 have">보유</span>`) : `<span class="pr5">${priceTag(ROOM_PRICE)}</span>`)).join("")}</div>
       ${u.room === "e" ? `<h3 class="th-h jua">가구 <span class="px fsub">drag &amp; drop</span></h3>
         <p class="lay-note hand">가구를 누르면 방에 놓이고, 다시 누르면 빠져요. 방 안 가구는 끌어서 옮겨요(키보드는 화살표). 아래쪽에 둘수록 앞에 보여요.</p>
         <h3 class="th-h jua">지금 내 방</h3><div class="room5 deco-room">${roomScene(u, true)}</div>
         <div class="dact5 left"><button class="bv" data-act="preset" data-v="l">러블리 배치</button><button class="bv" data-act="preset" data-v="m">스트릿 배치</button><button class="bv" data-act="preset" data-v="">전부 빼기</button></div>
         <div class="shop5 fur">${Object.entries(FURN).map(([k, [n, , price]]) => { const have = u.furnOwned.includes(k), on = k in u.furn;
-          return `<button class="it5 ${have ? "have" : ""} ${on ? "on" : ""}" data-act="furn" data-v="${k}" aria-pressed="${on}"><img src="img/f_${k}.png" alt=""><b>${n}</b>${have ? `<span class="hv">${on ? "놓음" : "보유"}</span>` : `<span class="pr px">${price}</span>`}</button>`; }).join("")}</div>`
-        : `<h3 class="th-h jua">지금 내 방</h3><div class="room5 deco-room">${roomScene(u)}</div><p class="lay-note hand">창밖은 지금 한국 시간과 내 동네(${esc(u.region)}) 날씨대로 바뀌어요. 가구를 직접 놓으려면 위에서 ‘빈 방’을 골라 주세요.</p>`}`;
+          return `<button class="it5 ${have ? "have" : ""} ${on ? "on" : ""}" data-act="furn" data-v="${k}" aria-pressed="${on}"><img src="img/f_${k}.png" alt=""><b>${n}</b>${have ? `<span class="hv">${on ? "놓음" : "보유"}</span>` : `<span class="pr"><span class="px">${price}</span> <small class="won5">· ${won(price)}</small></span>`}</button>`; }).join("")}</div>`
+        : `<h3 class="th-h jua">지금 내 방</h3><div class="room5 deco-room">${roomScene(u)}</div><p class="lay-note hand">창밖은 지금 한국 시간과 내 동네${u.region ? `(${esc(u.region)})` : ""} 날씨대로 바뀌어요. 가구를 직접 놓으려면 위에서 ‘빈 방’을 골라 주세요.</p>`}`;
   } else if (s === "order") {
     const ord = secOrder(u);
     const hid = u.secHidden || [], nm = k => SECS.find(s => s[0] === k)[1];
@@ -355,7 +355,7 @@ function hDeco(u) {
     }
   } else if (s === "closet") {
     inner = (u.freeCharUsed ? "" : `<p class="free5">🎁 가입 뒤 첫 1번은 아무 캐릭터나 무료로 바꿀 수 있어요</p>`) + CHAR_GROUPS.map(([g, ks]) => `<h3 class="th-h jua">${g}</h3><div class="cl-grid">${ks.map(k => { const [n, price] = CHARS[k], have = u.chars.includes(k), on = u.char === k;
-      return `<button class="cl ${on ? "sel" : ""}" data-act="wear" data-v="${k}" aria-pressed="${on}"><img src="img/p_${k}.png" alt=""><b>${n}</b>${on ? `<span class="hv">입는 중</span>` : have ? `<span class="hv">보유</span>` : `<span class="pr">구슬 ${price}</span>`}</button>`; }).join("")}</div>`).join("") + `<p class="lay-note hand">가진 캐릭터로는 언제든 무료로 갈아입어요. 새 캐릭터는 구슬이 들어요.</p>`;
+      return `<button class="cl ${on ? "sel" : ""}" data-act="wear" data-v="${k}" aria-pressed="${on}"><img src="img/p_${k}.png" alt=""><b>${n}</b>${on ? `<span class="hv">입는 중</span>` : have ? `<span class="hv">보유</span>` : `<span class="pr">구슬 ${price} <small class="won5">· ${won(price)}</small></span>`}</button>`; }).join("")}</div>`).join("") + `<p class="lay-note hand">가진 캐릭터로는 언제든 무료로 갈아입어요. 새 캐릭터는 구슬이 들어요.</p>`;
   } else if (s === "font") {
     inner = `<div class="lay-grid">${Object.entries(FONTS).map(([k, [n, fam]]) => `<button class="lay fontpick ${u.font === k ? "sel" : ""}" data-act="setfont" data-v="${k}" aria-pressed="${u.font === k}"><span class="fsample" style="font-family:'${fam}','Jua',sans-serif">${esc(u.title)}</span><b>${n}</b>${u.font === k ? `<span class="lk">사용 중</span>` : ""}</button>`).join("")}</div>
       <p class="lay-note hand">홈피 이름 글꼴이 바뀌어요. (도트 영문체는 한글이 기본 글꼴로 보여요)</p>`;
@@ -371,7 +371,11 @@ function hDeco(u) {
     ${inner}<div class="dact5"><a class="bv pri" href="#/h/${u.id}">내 홈피에서 보기 ›</a></div></div></section></div>`;
   return { body: hBody(u), title: "홈피 꾸미기", html: hompyFrame(u, "deco", body), after: () => { bindFurnDrag(u); bindPf(); } };
 }
-const applied = msg => { save(); toast(msg); refresh(); };
+// 저장된 내 정보와 비교해 실제로 바뀐 게 있을 때만 초대 보상을 판정한다(같은 걸 다시 눌러 저장한 건 제외)
+// shortcut: 마지막 save() 이후 다른 곳에서 저장 없이 바꾼 값도 '바뀜'으로 본다 — 실서비스는 서버에서 변경 이력으로
+const decoChanged = m => { try { return JSON.stringify(m) !== JSON.stringify(JSON.parse(localStorage.getItem(KEY)).users[m.id]); } catch (e) { return true; } };
+const invIfChanged = m => { if (m && decoChanged(m)) invCheck(m); };
+const applied = msg => { invIfChanged(me()); save(); toast(msg); refresh(); };  // 꾸미기 저장 = 초대 보상 판정 시점
 ACT.secmove = el => {
   const m = me(); if (!m) return; const o = secOrder(m), k = el.dataset.k, i = o.indexOf(k), top = el.dataset.d === "top", j = top ? 0 : i + +el.dataset.d;
   if (i < 0 || j < 0 || j >= o.length || i === j) return;
@@ -403,9 +407,9 @@ ACT.settheme = el => { me().theme = +el.dataset.v; applied(`배경을 ${ro(THEME
 ACT.setlayout = el => { me().layout = +el.dataset.v; applied(`레이아웃을 ${ro(LAYOUTS[+el.dataset.v - 1][0])} 바꿨어요.`); };
 ACT.setfont = el => { me().font = el.dataset.v; applied("글꼴을 바꿨어요."); };
 function buy(m, price, name, then) {
-  if (m.beads < price) return modal({ title: "구슬이 모자라요", body: `<p><b>${esc(eul(name))}</b> 사려면 구슬 <b>${price}</b>개가 필요해요. (지금 ${m.beads}개)</p>`, ok: "충전하러 가기", onOk: () => { go("#/my"); setTimeout(ACT.charge, 150); } });
-  modal({ title: "구슬로 사기", body: `<p><b>${esc(eul(name))}</b> 구슬 <b>${price}</b>개로 살까요? (지금 ${m.beads}개)</p>`, ok: "사기",
-    onOk: () => { if (m.beads < price) { toast("구슬이 모자라요. 마이페이지에서 충전할 수 있어요."); return; } m.beads -= price; m.beadLog.push({ t: name, n: -price, at: nowISO() }); then(); applied(`${eul(name)} 샀어요 ♡`); } });
+  if (m.beads < price) return modal({ title: "구슬이 모자라요", body: `<p><b>${esc(eul(name))}</b> 사려면 구슬 <b>${price}</b>개(${won(price)})가 필요해요. (지금 ${m.beads}개)</p>`, ok: "충전하러 가기", onOk: () => { go("#/my"); setTimeout(ACT.charge, 150); } });
+  modal({ title: "구슬로 사기", body: `<p><b>${esc(eul(name))}</b> 구슬 <b>${price}</b>개(${won(price)})로 살까요? (지금 ${m.beads}개 · 무료 구슬부터 써요)</p>`, ok: "사기",
+    onOk: () => { if (m.beads < price) { toast("구슬이 모자라요. 마이페이지에서 충전할 수 있어요."); return; } m.beads -= price; m.paidBeads = paidOf(m); m.beadLog.push({ t: name, n: -price, at: nowISO() }); then(); applied(`${eul(name)} 샀어요 ♡`); } });
 }
 ACT.wear = el => { const m = me(), k = el.dataset.v; if (!m || !CHARS[k]) return; if (m.chars.includes(k)) { m.char = k; return applied(`${ro(CHARS[k][0])} 갈아입었어요.`); } if (!m.freeCharUsed) return modal({ title: "캐릭터 바꾸기", body: `<p><b>${esc(ro(CHARS[k][0]))}</b> 바꿀까요? 가입 뒤 첫 1번은 무료예요.</p><p class="gray">다음부터 새 캐릭터는 구슬 20~30개가 들어요.</p>`, ok: "무료로 바꾸기", onOk: () => { m.freeCharUsed = true; m.chars.push(k); m.char = k; applied(`${ro(CHARS[k][0])} 바꿨어요 ♡`); } });
   buy(m, CHARS[k][1], CHARS[k][0], () => { m.chars.push(k); m.char = k; }); };
@@ -413,12 +417,12 @@ ACT.furn = el => {
   const m = me(), k = el.dataset.v;
   if (!m.furnOwned.includes(k)) return buy(m, FURN[k][2], FURN[k][0], () => { m.furnOwned.push(k); m.furn[k] = [512, 600]; });
   if (k in m.furn) delete m.furn[k]; else m.furn[k] = [512, 600];
-  save(); refresh();
+  invIfChanged(m); save(); refresh();
 };
 ACT.preset = el => {
   const m = me(), p = PRESET[el.dataset.v] || {}, missing = Object.keys(p).filter(k => !m.furnOwned.includes(k));
   m.furn = Object.fromEntries(Object.entries(p).filter(([k]) => m.furnOwned.includes(k)).map(([k, v]) => [k, [...v]]));
-  save(); refresh();
+  invIfChanged(m); save(); refresh();
   if (missing.length) toast(`없는 가구는 빼고 놓았어요: ${missing.map(k => FURN[k][0]).join(", ")}`);
 };
 // 등록한 노래 지우기(지우면 소개 칸 노래 줄이 '♪ 노래 고르기'로 돌아간다)

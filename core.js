@@ -17,7 +17,10 @@ function load() {
 // 예전에 저장된 데이터를 지금 구조로 맞춘다(홈피 주소 채우기, 없앤 반 데이터 지우기)
 function migrate(d) {
   delete d.classes; d.feed = (d.feed || []).filter(f => !/^#\/(c|j)\//.test(f.link || ""));  // 반 기능은 없앴다(2026-10-26 사장님 결정: 학교 반 초대가 따돌림 피해자를 소외시킬 수 있음)
-  Object.values(d.users).forEach(u => { if (!u.handle) u.handle = u.id; });
+  Object.values(d.users).forEach(u => { if (!u.handle) u.handle = u.id;
+    if (u.paidBeads == null) u.paidBeads = Math.min(u.beads || 0, (u.beadLog || []).reduce((s, l) => s + (l.paid ? l.n : 0), 0)); });  // 유료 잔액을 따로 둔다(v=105)
+  // v105 이전 가입: 이 브라우저에서 만든 계정은 가입(FORM.ob2) 때만 붙는 via가 있다(데모 seed 계정엔 없음) → 가입 이력으로 본다
+  if (!d.joinedHere && Object.values(d.users).some(u => u.via)) d.joinedHere = true;
   return d;
 }
 // 탈퇴 30일 지난 사람의 글·사진·기록·방문록·댓글·신청을 지운다
@@ -126,11 +129,10 @@ const isTeen = u => !!(u && !u.admin && u.birthYear && kst().y - u.birthYear <= 
 // 성인(또는 로그인 안 한 사람)이 단짝 아닌 10대에게 먼저 닿는 길을 막는다. 10대끼리·성인끼리는 그대로
 const teenLocked = (u, m = me()) => isTeen(u) && !(m && (m.id === u.id || isTeen(m) || isFriend(u.id, m.id)));
 const TEEN_MSG = "10대 회원을 보호하려고 단짝만 쓸 수 있어요.";
-// 사람 간 상호작용(방문록·기록 댓글·공감·단짝 신청·알림)은 모두 이 판정 하나로: m 이 u 에게 닿아도 되나
-const canReach = (m, u) => !!(m && u) && (m.id === u.id || (!eitherBlocked(m.id, u.id) && !isHidden(m) && !teenLocked(u, m)));
-// 단짝 맺기(수락·서로 신청): 신청한 쪽이 닿을 수 있고 받는 쪽도 신고로 가려지지 않아야
-const canPair = (from, to) => canReach(from, to) && !isHidden(to);
-const reachMsg = u => teenLocked(u) ? TEEN_MSG : isHidden(me()) ? "신고 확인 중이라 잠시 댓글·공감을 할 수 없어요." : "이 회원에게는 남길 수 없어요.";
+// 사람 간 상호작용(방문록·기록 댓글·공감·단짝 신청·수락·알림)은 모두 이 판정 하나로: m 이 u 에게 닿아도 되나. 신고로 가려진 쪽은 보내지도 받지도 못한다(운영자 알림은 addFeed 에서 예외)
+const canReach = (m, u) => !!(m && u) && (m.id === u.id || (!eitherBlocked(m.id, u.id) && !isHidden(m) && !isHidden(u) && !teenLocked(u, m)));
+const HIDDEN_U_MSG = "지금은 이 회원에게 닿을 수 없어요.";  // 신고 사실을 제3자에게 알리지 않는 중립 문구
+const reachMsg = u => teenLocked(u) ? TEEN_MSG : isHidden(me()) ? "신고 확인 중이라 잠시 댓글·공감을 할 수 없어요." : isHidden(u) ? HIDDEN_U_MSG : "이 회원에게는 남길 수 없어요.";
 const pval = (u, k) => prv(u)[k] || (k === "birthday" || (k === "guest" && isTeen(u)) ? "friends" : "all");  // 안 정했으면 생일(10대는 방문록도)은 단짝, 나머지는 전체공개
 const fieldOk = (u, key) => canSee(pval(u, key), u.id);      // 생일·좋아하는 것·그 시절/요즘 나
 const searchOn = u => prv(u).search ?? !isTeen(u);           // 모르는 사람에게 보이기: 10대는 기본 끔
@@ -293,6 +295,8 @@ addEventListener("hashchange", route);
 (() => {
   const q = new URLSearchParams(location.search); if (![...q.keys()].length) return;
   if (q.get("reset")) DB = seed();
+  if (/^[a-z0-9]{4,12}$/.test(q.get("inv") || "")) try { sessionStorage.setItem("inv", q.get("inv")); } catch (e) {}  // 친구 초대 링크(?inv=초대 코드)
+  if (q.has("inv")) { q.delete("inv"); try { history.replaceState(null, "", location.pathname + (q.toString() ? "?" + q : "") + location.hash); } catch (e) {} }  // 새로고침해도 다시 저장되지 않게 주소에서 뺀다
   const as = q.get("as");
   if (as === "out") { DB.me = null; DB.myId = null; }
   else if (as === "pending") { DB.me = null; DB.myId = null; DB.pending = { mkt: false, next: "", nick: "추억친구482", char: "", tone: "", big: false }; }

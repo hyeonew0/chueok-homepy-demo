@@ -19,6 +19,10 @@ const askDefault = next => {
   let e = ""; try { e = sessionStorage.getItem("entry") || ""; } catch (x) {}
   const eu = askTarget(e); return !!eu && eu.id === t.id;
 };
+// 친구 초대 링크(?inv=코드)로 들어온 경우 초대한 사람. 이름은 화면에 보여 주지 않는다
+const invBy = () => { let c = ""; try { c = sessionStorage.getItem("inv") || ""; } catch (e) {} const u = c && Object.values(DB.users).find(x => x.invCode === c); return u && alive(u) ? u : null; };
+// 초대 링크로 가입하는 친구가 구슬을 받을 수 있나(배너와 가입 처리가 같은 판정을 쓴다). 초대한 사람이 10명을 채워도 친구 보상은 준다(정책)
+const invFriendOk = by => invByOk(by) && !DB.joinedHere;
 const nextAfter = () => { const n = R.q.next || ""; return /^#\/[\w\/%?=&.+-]*$/.test(n) && !n.startsWith("#/login") && !n.startsWith("#/start") ? n : ""; };  // 우리 화면 주소만 따라간다
 
 VIEWS.login = () => {
@@ -35,14 +39,17 @@ VIEWS.login = () => {
         <p class="agn5"><b>모으는 항목</b> 카카오 또는 네이버의 회원 식별값·닉네임·출생연도<br><b>목적</b> 회원 확인·만 14세 이상 확인·홈피 운영·신고 처리<br><b>보관</b> 탈퇴 후 30일(법이 정한 기록은 그 기간)<br>다른 회원에게 피해를 줘 이용이 막힌 사람은 1년 동안 다시 가입할 수 없어요. 이걸 확인하려고 계정 정보를 알아볼 수 없게 바꿔서 1년만 보관해요.<br>동의하지 않을 수 있지만, 그러면 가입할 수 없어요.</p>
         <label class="rad"><input type="checkbox" name="mkt" class="ag"> [선택] 이벤트·혜택 알림</label>
         <p class="agn5">이벤트 소식을 알림으로 보내요. 동의하지 않아도 가입할 수 있고, 동의는 언제든 운영자에게 알려 철회할 수 있어요.</p></div>
-      <label class="fld"><span>출생연도 <small>(데모라 직접 골라요 · 실서비스는 카카오·네이버에서 받아요)</small></span><select class="inp" name="by" required><option value="">고르기</option>${Array.from({ length: 81 }, (_, i) => kst().y - 10 - i).map(y => `<option value="${y}">${y}년</option>`).join("")}</select></label>`}
+      <label class="fld"><span>출생연도 <small>(데모라 직접 골라요 · 실서비스는 카카오·네이버에서 받아요)</small></span><select class="inp" name="by" required data-change="byask"><option value="">고르기</option>${Array.from({ length: 81 }, (_, i) => kst().y - 10 - i).map(y => `<option value="${y}">${y}년</option>`).join("")}</select></label>`}
       <button class="btn-k big" name="via" value="kakao">💬 카카오로 3초 만에 시작 <small>(데모)</small></button>
       <button class="btn-k big btn-n" name="via" value="naver">네이버로 3초 만에 시작 <small>(데모)</small></button>
       <p class="ob-note">카카오·네이버에서 닉네임·출생연도만 받아요(프로필 사진·친구 목록은 받지 않아요). 카카오·네이버 친구에게 내 홈피가 알려지지 않아요. 추억홈피는 <b>만 14세 이상</b>만 가입할 수 있어요. 아이디·비밀번호 가입은 없어요.<br>추억홈피는 다른 서비스와 관계없는 독립 서비스예요. 예전 데이터는 가져오지 않아요.</p>
-      ${!back && askTarget(nextAfter()) ? `<p class="ob-note">가입하면 다음 화면에서 <b>${esc(askTarget(nextAfter()).nick)}</b>님께 단짝 신청을 보낼지 고를 수 있어요.</p>` : ""}
+      ${!back && invBy() ? (invFriendOk(invBy()) ? `<p class="warn5">🎁 친구 초대 링크로 오셨어요. ${esc(INVITE_FRIEND_NOTE)}<br><small class="gray">초대만으로 단짝이 되지는 않아요.</small></p>` : `<p class="ob-note">친구 초대 링크로 오셨어요. 초대만으로 단짝이 되지는 않아요.</p>`) : ""}
+      ${!back && askTarget(nextAfter()) ? `<p class="ob-note" id="askn" hidden>가입하면 다음 화면에서 <b>${esc(askTarget(nextAfter()).nick)}</b>님께 단짝 신청을 보낼지 고를 수 있어요.</p>` : ""}
       <div class="ob-nav"><a class="pbtn ghost" href="#/start/1">‹ 이전</a></div>
     </form>`);
 };
+// 단짝 신청 안내는 다음 화면에 체크박스가 나올 때(나이대가 같을 때)만 보인다
+CHG.byask = el => { const t = askTarget(nextAfter()), p = $("#askn"); if (t && p) p.hidden = !el.value || isTeen(t) !== isTeen({ birthYear: +el.value }); };
 CHG.agreeall = el => $$(".ag").forEach(c => c.checked = el.checked);
 FORM.login = (f, d) => {
   const back = DB.myId && DB.users[DB.myId];
@@ -55,7 +62,7 @@ FORM.login = (f, d) => {
   const by = +d.get("by"); if (!by) return toast("출생연도를 골라 주세요.");
   if (kst().y - by < 14) return toast("만 14세 이상만 가입할 수 있어요.");  // 14(생일 전 13세일 수 있음)는 받고 10대로 둔다 — isTeen 참고
   // 데모: 카카오·네이버에서 받은 닉네임 대신 임시 닉네임을 넣어 둔다(바로 고칠 수 있음)
-  DB.pending = { via: d.get("via") === "naver" ? "naver" : "kakao", mkt: !!d.get("mkt"), next: nextAfter(), nick: `추억친구${Math.floor(100 + Math.random() * 900)}`, char: "", tone: "", big: false, birthYear: by };
+  DB.pending = { via: d.get("via") === "naver" ? "naver" : "kakao", mkt: !!d.get("mkt"), next: nextAfter(), nick: `추억친구${Math.floor(100 + Math.random() * 900)}`, char: "", tone: "", big: false, birthYear: by, inv: invBy()?.id || "" };
   save(); go("#/start/2");
 };
 
@@ -83,7 +90,7 @@ VIEWS.start = step => {
       <h3 class="ob-h3 jua">글씨 크기</h3>
       <div class="frow">${[["", "보통"], ["1", "크게"]].map(([v, n]) => `<label class="rad"><input type="radio" name="big" value="${v}" ${(P.big ? "1" : "") === v ? "checked" : ""}>${n}</label>`).join("")}</div>
       <label class="fld"><span>닉네임 <small>(${P.via === "naver" ? "네이버" : "카카오"} 닉네임을 가져왔어요 · 바꿔도 돼요)</small></span><input class="inp" name="nick" value="${esc(P.nick)}" required minlength="2" maxlength="10"></label>
-      ${askTarget(P.next) && !(isTeen(askTarget(P.next)) && !isTeen(P)) ? `<label class="chk"><input type="checkbox" name="askok" ${askDefault(P.next) ? "checked" : ""}><span>가입하면 <b>${esc(askTarget(P.next).nick)}</b>님께 단짝 신청 보내기<br><small class="gray">신청하면 상대에게 내 닉네임과 홈피가 보여요.</small></span></label><input type="hidden" name="askid" value="${askTarget(P.next).id}">` : ""}
+      ${askTarget(P.next) && isTeen(askTarget(P.next)) === isTeen(P) ? `<label class="chk"><input type="checkbox" name="askok" ${askDefault(P.next) ? "checked" : ""}><span>가입하면 <b>${esc(askTarget(P.next).nick)}</b>님께 단짝 신청 보내기<br><small class="gray">신청하면 상대에게 내 닉네임과 홈피가 보여요.</small></span></label><input type="hidden" name="askid" value="${askTarget(P.next).id}">` : ""}
       <p class="ob-note">홈피 주소는 자동으로 만들어요. 동네(창밖 날씨)·생일·주소는 나중에 마이페이지에서, 방·배경·옷은 꾸미기에서 바꿀 수 있어요.</p>
       <p class="warn5" id="tonewarn" role="alert" hidden>방 분위기를 골라 주세요. (딸기우유 / 네이비 밤)</p>
       <div class="ob-nav"><a class="pbtn ghost" href="#/login${P.next ? `?next=${encodeURIComponent(P.next)}` : ""}">‹ 이전</a><button class="pbtn">완성하기 ✨</button></div></form>`);
@@ -114,7 +121,13 @@ FORM.ob2 = (f, d) => {
   };
   DB.me = DB.myId = id;
   const next = P.next; DB.pending = null;
-  const t0 = askTarget(next), to = d.get("askok") && t0 && t0.id === d.get("askid") && canReach(DB.users[id], t0) ? t0 : null;
+  const t0 = askTarget(next), to = d.get("askok") && t0 && t0.id === d.get("askid") && isTeen(t0) === isTeen(DB.users[id]) && canReach(DB.users[id], t0) ? t0 : null;  // 나이대가 다르면(10대↔성인) 가입 때 신청하지 않는다(양방향)
+  // 친구 초대: 친구는 가입 즉시, 초대한 사람은 첫 꾸미기 때(invCheck). 단짝은 맺지 않는다
+  // shortcut: 자기 초대·탈퇴 후 재가입·같은 브라우저 중복 가입을 이 브라우저 가입 이력(DB.joinedHere) 하나로 막는다 — 실서비스는 소셜 식별값 해시·서버 원장으로
+  const by = user(P.inv), u = DB.users[id];
+  if (by && by.id !== id) { const ok = invFriendOk(by); u.inv = { by: by.id, at: nowISO(), st: ok ? "wait" : "no" };
+    if (ok) { u.beads += INVITE.friend; u.beadLog.push({ t: "친구초대(받음)", n: INVITE.friend, paid: false, at: nowISO() }); toast(`초대 링크로 가입해서 구슬 ${INVITE.friend}개를 받았어요 ♡`); } }
+  DB.joinedHere = true; try { sessionStorage.removeItem("inv"); } catch (e) {}
   if (to) { DB.requests.push({ id: uid("q"), from: id, to: to.id, rel: "", at: nowISO() }); if (to.settings.notify.friend) addFeed(to.id, id, "님이 단짝을 신청했어요.", "#/my"); toast(`${nick(to.id)}님께 단짝 신청도 보냈어요 ♡`); }
   // 데모: 첫 단짝 신청 하나를 넣어 둔다(마이페이지에서 수락해 볼 수 있게). 지민은 성인이라 10대에게는 넣지 않는다
   if (!isTeen(DB.users[id]) && (!to || to.id !== "jimin")) { DB.requests.push({ id: uid("q"), from: "jimin", to: id, rel: "고딩 짝꿍", at: nowISO() }); addFeed(id, "jimin", "님이 단짝을 신청했어요.", "#/my"); }
