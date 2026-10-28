@@ -65,9 +65,9 @@ const REPORT_REASONS = {
 // 사람(계정) 신고 사유 — 글이 아니라 사람의 행동을 신고한다
 const USER_REPORT_REASONS = {
   harass: ["괴롭힘·스토킹·따라다님", false], abuse: ["욕설·비방·명예훼손", false], fake: ["다른 사람인 척해요 (사칭)", false],
-  spam: ["광고·도배 계정", false], illegal: ["음란·불법 정보", false], minor: ["만 19세 미만으로 보여요", false],
-  sexual: ["성적 접근·만남 요구", false], money: ["돈 요구·사기", false], contact: ["연락처·주소 요구", false], etc: ["기타", false],
-};
+  spam: ["광고·도배 계정", false], illegal: ["음란·불법 정보", false], minor: ["만 14세 미만으로 보여요", true],
+  sexual: ["성적 접근·만남 요구", true], money: ["돈 요구·사기", false], contact: ["연락처·주소 요구", true], etc: ["기타", false],
+};  // true = 긴급(10대 보호): 바로 가림(검색·추천에서 빠지고 단짝 신청·방문록 쓰기 막힘) + 운영자 목록 맨 위
 // 신고하는 화면 모두에 넣는 안내(사장님 지시)
 const REPORT_WARN = "사실대로 한 신고는 걱정하지 않으셔도 돼요. 다만 근거 없이 의도적으로 한 신고(허위·보복·괴롭힘 목적)는 확인 후 경고·이용 제한 등 조치될 수 있어요.";
 const PHOTO_POOL = ["img/y_window.png", "img/y_poster.png", "img/y_photos.png", "img/ym_window.png", "img/ym_poster.png", "img/wxs_l_sunset.png", "img/wxs_m_night.png", "img/wxs_l_snow.png", "img/i_polaroid.png"];
@@ -96,6 +96,8 @@ function seed() {
   U.admin = { ...U.choco, id: "admin", nick: "운영자", admin: true, title: "운영자", total: 0 };
   U.haneul.friends = ["lulu", "roki", "jimin"]; U.lulu.friends = ["haneul"]; U.roki.friends = ["haneul"]; U.jimin.friends = ["haneul", "byeolbit", "minsu"];
   U.byeolbit.friends = ["jimin", "minsu"]; U.minsu.friends = ["jimin", "byeolbit"];
+  // 데모 10대(QA·시연용): 매점러버 16세(기본값 그대로), 음악시간 17세(검색·방문록을 스스로 켬 — 그래도 성인 결과엔 안 나옴)
+  U.maejeom.birthYear = kst().y - 16; U.music.birthYear = kst().y - 17; U.music.privacy = { search: true, guest: "all" };
 
   let n = 4300;
   const P = (board, cat, title, author, d, views, likeBase, body, extra = {}) => ({
@@ -168,7 +170,7 @@ function seed() {
     if (u.song.title === "그 시절 내 노래" && id !== "byeolbit") { const [t, a] = SONGS[ui % SONGS.length]; u.song = { title: t, artist: a, url: "" }; }
     for (let i = 0; i < 4; i++) { const [title, body, mood, weather, scope] = DY[(ui * 5 + i) % DY.length]; diaries.push({ id: "d" + ++k, owner: id, title, body, mood, weather, scope, at: ago([0, 2, 3, 5][i] + (ui % 3), 2 + ui % 5), likes: [], comments: [] }); }
     for (let i = 0; i < 4; i++) { const [src, caption] = CAPS[(ui * 4 + i) % CAPS.length]; photos.push({ id: "f" + ++k, owner: id, src, caption, folder: i < 2 ? "그때 그 시절" : "요즘", at: ago(i + 1 + ui % 4) }); }
-    for (let i = 0; i < 3; i++) { const a = ids[(ui + i + 1) % ids.length]; if (a !== id) guests.push({ id: "g" + ++k, owner: id, author: a, text: GB[(ui + i) % GB.length][0], secret: false, at: ago(i, 5 + ui % 7), reply: "" }); }
+    for (let i = 0; i < 3; i++) { const a = ids[(ui + i + 1) % ids.length]; if (a !== id && !U[a].birthYear === !u.birthYear) guests.push({ id: "g" + ++k, owner: id, author: a, text: GB[(ui + i) % GB.length][0], secret: false, at: ago(i, 5 + ui % 7), reply: "" }); }
     // 오늘 방문자(인기 홈피가 전부 "오늘 0명"이던 것)
     u.today = { d: kst().key, n: Math.max(0, Math.round(u.total / 400) + (ui * 7) % 23) };
   });

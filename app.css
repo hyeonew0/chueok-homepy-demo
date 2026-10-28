@@ -216,6 +216,7 @@ body.hallpg .grid5 { margin-top: 0; }
 .frm .frow > .fld { flex: 1 1 140px; min-width: 0; } .frm .fld input.inp5 { width: 100%; }
 .btn-k.big { height: auto; min-height: 54px; padding: 8px 18px; }
 .btn-k small { font-size: .7em; opacity: .8; margin-left: 2px; }
+.btn-k.btn-n { background: #008a3e; border-color: #007534; color: #fff; }  /* 네이버로 시작(초록·흰 글자 대비 4.5 이상) */
 @media (max-width: 860px) {
   /* 04 잡지: 위 흰 공백과 프로필 사진이 글을 덮던 것 */
   body.tpl-4 .cv5-art { height: 110px; }

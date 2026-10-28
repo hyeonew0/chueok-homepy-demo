@@ -57,7 +57,7 @@ function welcomeBox() {
       <a class="btn-h" href="#/h/${m.id}">🏠 내 홈피 가기</a><a class="btn-k" href="#/write">✏ 글쓰기</a>
       <div class="minilinks"><a href="#/h/${m.id}/deco">꾸미기</a><a href="#/my">마이페이지</a><a href="#/go">놀러가기</a></div></section>`
     : `<section class="box welcome"><p>추억홈피에 오신 것을 환영합니다!</p>
-      <a class="btn-k" href="#/login">💬 카카오로 시작</a><a class="btn-h" href="#/login">🏠 내 홈피 만들기</a>
+      <a class="btn-k" href="#/login">💬 카카오·네이버로 시작</a><a class="btn-h" href="#/login">🏠 내 홈피 만들기</a>
       <div class="minilinks"><a href="#/go">홈피 구경하기</a><a href="#/help">도움말</a></div></section>`;
 }
 function hotBox(title = "이번 주 인기글", n = 5) {
@@ -317,7 +317,8 @@ VIEWS.report = (a, b) => {
         <div class="rp-target"><img src="${t.img ? safeSrc(t.img) : charSrc(t.author)}" alt=""><div><b>${esc(t.title)}</b><em>${esc(t.where)} · ${esc(nick(t.author))} · ${md(t.at)}</em></div></div>
         <fieldset class="rp-list"><legend class="sr">신고 사유 (하나 고르기)</legend>${Object.entries(RS).map(([k, [tx]]) => `<label class="rad"><input type="radio" name="reason" value="${k}" required>${tx}</label>`).join("")}</fieldset>
         <textarea class="inp5 grow tall" name="detail" maxlength="500" placeholder="어떤 부분이 문제인지 알려 주세요 (권리 침해·기타는 꼭 써 주세요)" aria-label="자세한 내용"></textarea>
-        ${isUser ? `<div class="warn5">사람 신고는 운영자가 그 사람이 쓴 글·댓글·방문록을 확인해요. 신고한 사람이 누군지는 상대에게 알리지 않아요.</div>` : `<div class="warn5">권리 침해(초상권·아이 사진·저작권·괴롭힘·저격·신상 노출) 신고는 바로 가려지고(최대 30일), 쓴 사람에게 알림이 가요. 쓴 사람은 이의를 신청할 수 있어요.</div>`}
+        <p class="warn5 strong">📞 지금 위험하면 <b>112</b>, 청소년 고민 상담은 <b>1388</b>, 학교폭력은 <b>117</b>에 바로 전화하세요.</p>
+        ${isUser ? `<div class="warn5">사람 신고는 운영자가 그 사람이 쓴 글·댓글·방문록을 확인해요. 성적 접근·연락처 요구·만 14세 미만 의심은 바로 가리고 가장 먼저 확인해요. 신고한 사람이 누군지는 상대에게 알리지 않아요.</div>` : `<div class="warn5">권리 침해(초상권·아이 사진·저작권·괴롭힘·저격·신상 노출) 신고는 바로 가려지고(최대 30일), 쓴 사람에게 알림이 가요. 쓴 사람은 이의를 신청할 수 있어요.</div>`}
         ${canBlock ? `<label class="chk"><input type="checkbox" name="autoblock" checked><span>🚫 신고하면서 <b>${esc(nick(t.author))}</b>님 차단하기<br><small class="gray">차단하면 서로의 홈피·글·댓글·방문록이 안 보이고, 단짝이면 단짝이 끊어져서 상대가 알 수도 있어요. 마이페이지 › 안심 설정에서 풀 수 있어요.</small></span></label>` : ""}
         <p class="warn5 strong">⚠ ${REPORT_WARN}</p>
         <div class="dact5"><a class="bv" href="${t.link}">취소</a><button class="bv pri">신고하기</button></div>
@@ -333,7 +334,7 @@ FORM.report = (f, d) => {
   const RS = spec.type === "user" ? USER_REPORT_REASONS : REPORT_REASONS;
   const reason = d.get("reason"); if (!RS[reason]) return toast("신고 사유를 하나 골라 주세요.");
   const right = RS[reason][1], detail = (d.get("detail") || "").trim().slice(0, 500);
-  if ((right || reason === "etc") && detail.length < 5) return toast("어떤 부분이 문제인지 5자 이상 써 주세요.");
+  if (((right && spec.type !== "user") || reason === "etc") && detail.length < 5) return toast("어떤 부분이 문제인지 5자 이상 써 주세요.");
   const same = r => r.type === spec.type && (r.pid || null) === (spec.pid || null) && (r.cid || null) === (spec.cid || null) && (r.tid || null) === (spec.tid || null);
   if (DB.reports.some(r => same(r) && r.reporter === m.id)) return toast("이미 신고했어요. 운영자가 확인 중이에요.");
   // 바로 가림은 운영자·공지 글은 빼고, 같은 사람의 글은 하루 한 번만(나머지는 운영자 검토)
@@ -341,7 +342,7 @@ FORM.report = (f, d) => {
   const quick = right && !user(t.author)?.admin && !t.obj.notice && !today && !already;
   const r = { id: uid("r"), ...spec, reporter: m.id, reason, detail, at: nowISO(), status: quick ? "가림" : "검토 중", log: [] };
   DB.reports.unshift(r);
-  if (quick && !isHidden(t.obj)) { t.obj.hidden = { until: new Date(Date.now() + 30 * 864e5).toISOString(), reason, rid: r.id }; r.log.push({ at: nowISO(), text: "권리 침해 신고 — 30일 가림" }); }
+  if (quick && !isHidden(t.obj)) { t.obj.hidden = { until: new Date(Date.now() + 30 * 864e5).toISOString(), reason, rid: r.id }; r.log.push({ at: nowISO(), text: `${spec.type === "user" ? "긴급 신고" : "권리 침해 신고"} — 30일 가림` }); }
   // 신고 순간 상대에게 알림이 가면 신고한 사람을 짐작할 수 있다 — 권리 침해 가림만 알리고, 위치는 '내 신고된 글' 목록에서만 보여 준다
   if (quick && spec.type !== "user") addFeed(t.author, "admin", "님(운영자): 내가 쓴 내용 중 하나가 권리 침해 신고로 잠시 가려졌어요. 마이페이지에서 이의 신청할 수 있어요.", "#/my?sec=myreports");
   const blocked = !!d.get("autoblock") && blockUser(m, t.author);  // 신고하면서 차단(기본 켬, 끌 수 있음 — 사장님 결정 2026-10-27)
@@ -352,7 +353,8 @@ FORM.report = (f, d) => {
 
 // ---------- 운영자(데모) ----------
 VIEWS.admin = () => {
-  const rows = DB.reports.map(r => {
+  const urgent = r => r.type === "user" && USER_REPORT_REASONS[r.reason]?.[1] ? 1 : 0;  // 10대 보호 긴급 신고를 맨 위로
+  const rows = [...DB.reports].sort((a, b) => urgent(b) - urgent(a)).map(r => {
     const t = rTarget(r);
     return `<tr><td>${md(r.at)}</td><td>${t ? `${esc(t.where)} · <a href="${t.link}">${esc(String(t.title).slice(0, 22))}</a>` : "(지워짐)"}</td><td>${esc(((r.type === "user" ? USER_REPORT_REASONS : REPORT_REASONS)[r.reason] || ["기타"])[0].replace(/ \(.+\)/, ""))}${r.detail ? `<em class="gray"> — ${esc(r.detail.slice(0, 40))}</em>` : ""}</td>
       <td><span class="tag ${{ "가림": "t-pink", "삭제": "t-not", "검토 중": "t-yel", "이의 신청": "t-blue", "되돌림": "t-teal", "기각": "t-pur", "경고": "t-not", "허위 신고": "t-blue" }[r.status] || "t-pur"}">${r.status}</span>${r.log.length ? `<em class="gray"> ${esc(r.log[r.log.length - 1].text.slice(0, 40))}</em>` : ""}</td>
@@ -401,7 +403,7 @@ VIEWS.search = () => {
   return { body: "v4p y5p", title: "검색", html: portal("", main, welcomeBox()) };
 };
 VIEWS.help = () => ({ body: "v4p y5p", title: "도움말", html: portal("", `<section class="box"><div class="box-h"><span class="ic">❓</span><h2 class="jua">이용 규칙·도움말</h2></div>
-  <ul class="rule5"><li>추억홈피는 다른 서비스와 관계없는 독립 서비스이며, 예전 데이터는 가져오지 않습니다.</li><li>남의 사진·실명은 올리지 않아요. 권리 침해 신고가 들어오면 최대 30일 가려져요.</li><li>광고·판매 글은 지워져요. 욕설·비방은 신고 대상이에요.</li><li>노래는 음원 파일 대신 공식 영상 링크만 걸 수 있어요.</li><li>추억홈피는 <b>만 19세 이상</b>만 가입할 수 있어요.</li><li>신고할 때 그 사람을 함께 차단할 수 있어요(기본 켬). 단짝이면 단짝이 끊어져서 상대가 알 수도 있으니 필요하면 끄고 신고하세요. ${REPORT_WARN}</li><li>이 화면은 데모예요. 데이터는 이 브라우저에만 저장되고, 카카오 로그인은 흉내만 내요.</li></ul></section>
+  <ul class="rule5"><li>추억홈피는 다른 서비스와 관계없는 독립 서비스이며, 예전 데이터는 가져오지 않습니다.</li><li>남의 사진·실명은 올리지 않아요. 권리 침해 신고가 들어오면 최대 30일 가려져요.</li><li>광고·판매 글은 지워져요. 욕설·비방은 신고 대상이에요.</li><li>노래는 음원 파일 대신 공식 영상 링크만 걸 수 있어요.</li><li>추억홈피는 <b>만 14세 이상</b>만 카카오·네이버로 가입할 수 있어요(아이디·비밀번호 가입은 없어요).</li><li>신고할 때 그 사람을 함께 차단할 수 있어요(기본 켬). 단짝이면 단짝이 끊어져서 상대가 알 수도 있으니 필요하면 끄고 신고하세요. ${REPORT_WARN}</li><li>이 화면은 데모예요. 데이터는 이 브라우저에만 저장되고, 카카오·네이버 로그인은 흉내만 내요.</li></ul></section>
   <section class="box" id="contact"><div class="box-h"><span class="ic">✉</span><h2 class="jua" style="font-size:18px">운영자에게 알리기</h2><span class="sub">볼 수 없게 된 곳(차단 등)의 내 사진·괴롭힘도 여기로 알려 주세요</span></div>
     <form class="frm" data-form="contact"><input class="inp5 grow" name="where" maxlength="120" placeholder="어디서 일어났나요? (예: 홈피 주소, 글 제목)"><textarea class="inp5 grow tall" name="text" maxlength="1000" required placeholder="무슨 일인지 알려 주세요. 신고한 사람이 누군지는 상대에게 알리지 않아요."></textarea>
     <div class="dact5"><button class="bv pri">운영자에게 보내기</button></div></form></section>`, welcomeBox()) });
@@ -429,7 +431,7 @@ VIEWS.my = () => {
   const main = `
     <section class="box"><div class="box-h"><span class="ic">🏠</span><h2 class="jua">마이페이지</h2></div>
       <div class="my5"><div class="purikura small"><img src="${avSrc(m.id)}" alt=""><span class="px">${esc(m.id)}</span></div>
-        <div><b class="jua big">${esc(m.nick)}</b><p>추억홈피.kr/@${esc(m.handle || m.id)} (예시&nbsp;주소) · 카카오 로그인(데모)${m.region ? ` · ${esc(m.region)}` : ""}</p>
+        <div><b class="jua big">${esc(m.nick)}</b><p>추억홈피.kr/@${esc(m.handle || m.id)} (예시&nbsp;주소) · ${m.via === "naver" ? "네이버" : "카카오"} 로그인(데모)${m.region ? ` · ${esc(m.region)}` : ""}</p>
           <p><a class="bv" href="#/h/${m.id}/deco?s=pic">📷 프로필 사진 바꾸기</a> <a class="bv sm" href="#/my?sec=safe">🛡 안심 설정 바로 가기</a></p>
           <div class="lcd"><div><span class="px dig">${pad4(m.friends.length)}</span><em>단짝</em></div><div><span class="px dig">${pad4(DB.guests.filter(g => g.owner === m.id).length)}</span><em>방문록</em></div><div><span class="px dig">${pad4(m.beads)}</span><em>내 구슬</em></div></div></div></div>
     </section>
@@ -449,7 +451,7 @@ VIEWS.my = () => {
       <table class="ptbl set">
         <tr><th>구슬 내역</th><td>${m.beadLog.slice(-4).reverse().map(l => `${esc(l.t)} ${l.n > 0 ? "+" : ""}${l.n}`).join(" · ") || "아직 없어요"} <button class="lnkbtn lnk" data-act="charge">구슬 충전(데모)</button> <em>(유료 ${m.beadLog.filter(l => l.paid).reduce((s, l) => s + l.n, 0)} · 무료 ${m.beadLog.filter(l => !l.paid && l.n > 0).reduce((s, l) => s + l.n, 0)})</em> <button class="lnkbtn lnk" data-act="refund">환불 신청</button></td></tr>
         <tr><th>내 데이터</th><td><button class="bv" data-act="export">글·사진 전체 내려받기 (json)</button></td></tr>
-        <tr><th>탈퇴</th><td><button class="lnkbtn lnk gray" data-act="withdraw">회원 탈퇴</button> <em>탈퇴하면 30일 뒤 모든 글·사진이 지워져요. 30일 안에 다시 로그인하면 되살아나요.</em></td></tr>
+        <tr><th>탈퇴</th><td><button class="lnkbtn lnk gray" data-act="withdraw">회원 탈퇴</button> <em>탈퇴하면 30일 뒤 모든 글·사진이 지워져요. 30일 안에 다시 로그인하면 되살아나요. 다른 회원에게 피해를 줘 이용 제한된 경우 1년간 다시 가입할 수 없어요.</em></td></tr>
       </table></section>
     ${safeBox(m)}
     ${(() => { const mine = DB.reports.filter(r => r.type !== "user" && reportOwner(r) === m.id && r.status !== "검토 중"); return mine.length ? `<section class="box" id="myreports"><div class="box-h"><span class="ic">🛡</span><h2 class="jua" style="font-size:18px">내 글에 들어온 신고 ${mine.length}</h2><span class="sub">신고한 사람은 알려 드리지 않아요</span></div><ul class="feed">${mine.map(r => { const t = rTarget(r); return `<li><span><b>${esc(String(t?.title || "(지워짐)").slice(0, 24))}</b> <em class="gray">${esc(t?.where || "")} · ${r.status}</em></span><span class="ago">${t?.obj && isHidden(t.obj) && r.status === "가림" ? appealBtn(t.obj) : ""}</span></li>`; }).join("")}</ul></section>` : ""; })()}
@@ -476,7 +478,7 @@ FORM.settings = (f, d) => {
   const sf = $('form[data-form="safe"]'); if (sf) applySafe(m, new FormData(sf));
   save(); toast("설정과 안심 설정을 저장했어요."); refresh();
 };
-ACT.charge = () => modal({ title: "구슬 충전 (데모)", body: `<p>데모라 실제 결제 없이 구슬을 넣어 드려요.</p><p class="gray">가격: 실서비스 가격 미정 · 산 지 7일 안 미사용분은 전액 환불, 유효기간 5년, 무료로 받은 구슬은 환불 대상이 아니에요.</p><div class="frow">${[30, 50, 100].map((n, i) => `<label class="rad"><input type="radio" name="n" value="${n}" ${i === 1 ? "checked" : ""}>구슬 ${n}</label>`).join("")}</div>`, ok: "충전하기",
+ACT.charge = () => isTeen(me()) ? modal({ title: "구슬 충전", body: `<p>만 19세 미만은 구슬을 충전할 수 없어요.</p><p class="gray">무료로 받은 구슬은 그대로 쓸 수 있어요.</p>`, ok: "닫기", cancel: "" }) : modal({ title: "구슬 충전 (데모)", body: `<p>데모라 실제 결제 없이 구슬을 넣어 드려요.</p><p class="gray">가격: 실서비스 가격 미정 · 산 지 7일 안 미사용분은 전액 환불, 유효기간 5년, 무료로 받은 구슬은 환불 대상이 아니에요.</p><div class="frow">${[30, 50, 100].map((n, i) => `<label class="rad"><input type="radio" name="n" value="${n}" ${i === 1 ? "checked" : ""}>구슬 ${n}</label>`).join("")}</div>`, ok: "충전하기",
   onOk: d => { const m = me(), n = +d.get("n"); m.beads += n; m.beadLog.push({ t: "충전(데모)", n, paid: true, at: nowISO() }); save(); toast(`구슬 ${n}개를 넣었어요.`); refresh(); } });
 ACT.refund = () => { const m = me(); if (!m.beads) return toast("환불할 구슬이 없어요."); modal({ title: "환불 신청", body: `<p>쓰지 않은 구슬 <b>${m.beads}</b>개를 환불 신청할까요?</p><p class="gray">실서비스: 산 지 7일 안 미사용분은 전액, 그 뒤엔 수수료를 빼고 돌려드려요. 유료 구슬 유효기간은 5년이고, 서비스가 끝나면 남은 유료 구슬은 전액 돌려드려요. 무료로 받은 구슬은 환불 대상이 아니에요. 데모라 실제 환불은 없어요.</p>`, ok: "신청하기",
   onOk: () => { if (!m.beads) return toast("환불할 구슬이 없어요."), false; m.beadLog.push({ t: "환불 신청", n: -m.beads, at: nowISO() }); m.beads = 0; save(); toast("환불 신청을 접수했어요."); refresh(); } }); };
@@ -490,12 +492,12 @@ ACT.export = () => {
   a.download = `추억홈피_${m.id}_내데이터.json`; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000); toast("내려받기를 시작했어요.");
 };
-ACT.withdraw = () => modal({ title: "회원 탈퇴", body: `<p>정말 떠나시나요? 홈피와 글이 바로 숨겨지고 30일 뒤 지워져요.</p><label class="chk"><input type="checkbox" name="ok" required> 네, 탈퇴할게요</label>`, ok: "탈퇴하기", danger: true,
+ACT.withdraw = () => modal({ title: "회원 탈퇴", body: `<p>정말 떠나시나요? 홈피와 글이 바로 숨겨지고 30일 뒤 지워져요.</p><p class="gray">다른 회원에게 피해를 줘 이용 제한된 경우 1년간 다시 가입할 수 없어요.</p><label class="chk"><input type="checkbox" name="ok" required> 네, 탈퇴할게요</label>`, ok: "탈퇴하기", danger: true,
   onOk: () => { const m = me(); m.withdrawnAt = nowISO(); DB.me = null; save(); toast("탈퇴했어요. 30일 안에 다시 로그인하면 되살릴 수 있어요."); go("#/"); } });
 ACT.freqall = () => {
   const m = me(); if (!m) return;
-  const rs = DB.requests.filter((r, i, all) => r.to === m.id && user(r.from) && !user(r.from).withdrawnAt && !eitherBlocked(m.id, r.from) && all.findIndex(x => x.to === m.id && x.from === r.from) === i);
-  if (!rs.length) return;
+  const rs = DB.requests.filter((r, i, all) => r.to === m.id && user(r.from) && !user(r.from).withdrawnAt && !eitherBlocked(m.id, r.from) && all.findIndex(x => x.to === m.id && x.from === r.from) === i && canPair(user(r.from), m));
+  if (!rs.length) return isHidden(m) && toast("신고 확인 중이라 잠시 단짝 신청을 받을 수 없어요.");
   modal({ title: "단짝 신청 모두 수락", body: `<ul class="feed">${rs.map(r => `<li><img class="av" src="${avSrc(r.from)}" alt=""><span><b>${esc(nick(r.from))}</b>님 ${esc(r.rel || "")}</span></li>`).join("")}</ul><p>모두 <b>${rs.length}</b>명의 신청을 받을까요?</p>`, ok: "모두 수락",
     onOk: () => { rs.forEach(r => { dropReq(m.id, r.from); const f = user(r.from); if (!m.friends.includes(f.id)) m.friends.push(f.id); if (!f.friends.includes(m.id)) f.friends.push(m.id); addFeed(f.id, m.id, "님이 단짝 신청을 받아 줬어요 ♡", `#/h/${m.id}`); });
       save(); toast(`${rs.length}명과 단짝이 됐어요 ♡`); refresh(); } });
@@ -505,6 +507,7 @@ const dropReq = (a, b) => { DB.requests = DB.requests.filter(x => !((x.from === 
 ACT.freq = el => {
   const r = DB.requests.find(x => x.id === el.dataset.id); if (!r || r.to !== me()?.id) return;  // 나에게 온 신청만
   if (eitherBlocked(r.to, r.from)) { dropReq(r.to, r.from); save(); toast("차단 관계라 받을 수 없는 신청이에요."); return refresh(); }
+  if (el.dataset.ok && user(r.from) && !canPair(user(r.from), me())) return toast(isHidden(me()) ? "신고 확인 중이라 잠시 단짝 신청을 받을 수 없어요." : TEEN_MSG);  // 신청은 남겨 두어 가림이 풀리면 다시 받을 수 있게
   dropReq(r.to, r.from);  // 수락·거절 모두 두 사람 사이 신청을 한꺼번에 정리(중복 신청도)
   if (el.dataset.ok && user(r.from)) { const m = me(); if (!m.friends.includes(r.from)) m.friends.push(r.from); if (!user(r.from).friends.includes(m.id)) user(r.from).friends.push(m.id); addFeed(r.from, m.id, "님이 단짝 신청을 받아 줬어요 ♡", `#/h/${m.id}`); toast("이제 단짝이에요 ♡"); }
   save(); refresh();
@@ -525,7 +528,8 @@ function safeBox(m) {
     <form data-form="safe"><table class="ptbl set">
       ${row("birthday", "생일 보여 주기")}${row("likes", "좋아하는 것")}${row("then", "그 시절 나")}${row("now", "요즘 나")}
       <tr><th>방문록 쓰기</th><td>${[["all", "누구나"], ["friends", "단짝만"], ["off", "닫기"]].map(([v, t]) => `<label class="rad"><input type="radio" name="p_guest" value="${v}" ${sc("guest") === v ? "checked" : ""}>${t}</label>`).join("")}</td></tr>
-      <tr><th>모르는 사람에게 내 홈피 보이기</th><td><label class="chk"><input type="checkbox" name="p_search" ${p.search !== false ? "checked" : ""}> 검색·오늘 인기 홈피·놀러가기·추천에 보이기</label> <em>(끄면 링크·단짝으로만 찾아와요)</em></td></tr>
+      <tr><th>모르는 사람에게 내 홈피 보이기</th><td><label class="chk"><input type="checkbox" name="p_search" ${searchOn(m) ? "checked" : ""}> 검색·오늘 인기 홈피·놀러가기·추천에 보이기</label> <em>(끄면 링크·단짝으로만 찾아와요)</em></td></tr>
+      ${isTeen(m) ? `<tr><td colspan="2"><em>10대 회원이라 처음엔 검색·놀러가기에 안 보이고 방문록은 단짝만 써요. 켜도 어른 회원은 단짝이 아니면 나를 검색·추천에서 볼 수 없고, 먼저 단짝 신청·방문록을 남길 수 없어요.</em></td></tr>` : ""}
       <tr><td colspan="2"><em>로그인하지 않은 사람에게는 ‘전체공개’로 둔 것만 보여요. 차단은 로그인한 상태에서 서로 안 보이게 해요. 단짝 홈피에 들르면 단짝에게 ‘놀러왔어요’ 알림이 가요(받는 사람이 위 설정의 알림에서 끌 수 있어요).</em></td></tr>
       <tr><td colspan="2"><button class="bv pri">안심 설정 저장</button></td></tr>
     </table></form>
@@ -560,12 +564,12 @@ const POLICY = {
   terms: { title: "이용약관", html: `
 <p class="gray">시행일 ${POLICY_TODO} · 데모용 초안이에요.</p>
 <h3>제1조 (목적)</h3><p>이 약관은 추억홈피(이하 ‘서비스’)를 쓰는 회원과 운영자 사이의 권리·의무와 책임을 정합니다.</p>
-<h3>제2조 (가입)</h3><ul><li>만 19세 이상만 가입할 수 있어요. 카카오 계정으로 가입하고, 출생연도로 나이를 확인해요. <span class="gray">(실서비스에서 적용 예정 · 데모는 본인 체크만 하고 이 브라우저에만 저장해요)</span></li><li>남의 정보로 가입하면 이용이 제한될 수 있어요.</li></ul>
+<h3>제2조 (가입)</h3><ul><li>만 14세 이상만 가입할 수 있어요. 카카오 또는 네이버 계정으로만 가입하고(아이디·비밀번호 가입은 없어요), 카카오·네이버에서 받은 출생연도로 만 14세 이상인지 확인해요. <span class="gray">(실서비스에서 적용 예정 · 데모는 본인 체크만 하고 이 브라우저에만 저장해요)</span></li><li>남의 정보로 가입하면 이용이 제한될 수 있어요.</li></ul>
 <h3>제3조 (게시물)</h3><ul><li>홈피·게시판에 올린 글·사진의 저작권은 쓴 사람에게 있어요.</li><li>운영자는 서비스 안에서 보여 주는 데 필요한 범위(크기 조절·미리보기 등)에서만 게시물을 써요.</li><li>다른 사람이 나온 사진은 그 사람의 동의를 받고 올려야 해요.</li></ul>
 <h3>제4조 (하면 안 되는 일)</h3><ul><li>남의 사진·실명·연락처를 동의 없이 올리기, 욕설·비방·괴롭힘</li><li>음란·불법 정보, 광고·판매 글, 음원 파일 올리기</li><li>서비스를 망가뜨리거나 다른 사람 계정을 쓰는 일</li></ul>
 <h3>제5조 (신고와 임시조치)</h3><p>권리 침해 신고가 들어오면 게시물을 최대 30일 가리고 쓴 사람에게 알려요. 쓴 사람은 이의를 신청할 수 있어요(정보통신망법 제44조의2).</p>
-<h3>제6조 (이용 제한)</h3><p>제4조를 어기면 경고, 글 가림, 이용 정지 순으로 제한할 수 있고, 이유를 알려 드려요.</p>
-<h3>제7조 (구슬)</h3><ul><li>구슬은 꾸미기 아이템을 사는 데 쓰는 서비스 안 재화예요. 현금으로 바꾸거나 남에게 줄 수 없어요.</li><li>산 지 7일 안의 쓰지 않은 구슬은 전액 환불해요. 그 뒤 남은 구슬도 환불을 신청할 수 있어요(수수료 ${POLICY_TODO}).</li><li>구슬 유효기간은 산 날부터 5년이에요. 무료로 받은 구슬은 환불 대상이 아니에요.</li><li>서비스를 끝내면 쓰지 않은 유료 구슬은 전액 돌려드려요.</li><li class="gray">데모에서는 실제 결제가 없어요.</li></ul>
+<h3>제6조 (이용 제한)</h3><p>제4조를 어기면 경고, 글 가림, 이용 정지 순으로 제한할 수 있고, 이유를 알려 드려요. 다른 회원에게 피해를 줘 이용이 막힌 사람은 1년 동안 다시 가입할 수 없어요. 이걸 확인하려고 카카오·네이버 계정 정보를 알아볼 수 없게 바꿔서(해시) 1년만 보관해요.</p>
+<h3>제7조 (구슬)</h3><ul><li>구슬은 꾸미기 아이템을 사는 데 쓰는 서비스 안 재화예요. 현금으로 바꾸거나 남에게 줄 수 없어요.</li><li>산 지 7일 안의 쓰지 않은 구슬은 전액 환불해요. 그 뒤 남은 구슬도 환불을 신청할 수 있어요(수수료 ${POLICY_TODO}).</li><li>만 19세 미만은 구슬을 충전(결제)할 수 없어요.</li><li>구슬 유효기간은 산 날부터 5년이에요. 무료로 받은 구슬은 환불 대상이 아니에요.</li><li>서비스를 끝내면 쓰지 않은 유료 구슬은 전액 돌려드려요.</li><li class="gray">데모에서는 실제 결제가 없어요.</li></ul>
 <h3>제8조 (탈퇴)</h3><p>내 정보에서 언제든 탈퇴할 수 있어요. 30일 뒤 글·사진이 모두 지워지고, 그 전에 다시 로그인하면 되살아나요.</p>
 <h3>제9조 (서비스 변경·종료)</h3><p>서비스를 바꾸거나 끝낼 때는 30일 전에 공지해요.</p>
 <h3>제10조 (책임)</h3><p>회원이 올린 게시물의 책임은 쓴 사람에게 있어요. 운영자는 고의나 중대한 잘못이 없으면 회원끼리의 다툼에 책임지지 않아요.</p>
@@ -573,22 +577,23 @@ const POLICY = {
   privacy: { title: "개인정보 처리방침", html: `
 <p class="gray">시행일 ${POLICY_TODO} · 데모용 초안이에요.</p>
 <h3>1. 모으는 정보</h3><table class="pt5"><tr><th>언제</th><th>항목</th></tr>
-<tr><td>가입(필수)</td><td>카카오 회원번호, 닉네임, 출생연도</td></tr>
+<tr><td>가입(필수)</td><td>카카오: 회원 식별값·닉네임·출생연도 / 네이버: 회원 식별값·닉네임·출생연도 (가입한 곳 하나만)</td></tr>
 <tr><td>가입(선택)</td><td>이벤트·혜택 알림 받기 여부</td></tr>
 <tr><td>이용 중</td><td>올린 글·사진·방문록·댓글, 신고·문의 내용, 접속 기록</td></tr>
 <tr><td>구슬 결제 시</td><td>결제·환불 기록(카드번호는 결제대행사만 가져요)</td></tr></table>
 <p>프로필 사진, 전화번호, 실명은 모으지 않아요. 사진 속 촬영 위치 정보는 올릴 때 지워요.</p>
-<h3>2. 쓰는 목적</h3><p>회원 확인과 만 19세 확인, 홈피·게시판 운영, 신고 처리와 부정 이용 막기, 구슬 결제·환불, (동의한 분만) 이벤트 알림.</p>
-<h3>3. 보관 기간</h3><ul><li>탈퇴하면 30일 뒤 지워요(그 전에 다시 로그인하면 되살아남).</li><li>법이 정한 기록은 그 기간만 따로 보관해요: 결제·환불 기록 5년, 소비자 불만 처리 기록 3년(전자상거래법), 접속 기록(통신비밀보호법, 기간은 ${POLICY_TODO}).</li><li class="gray">위 보관·삭제는 실서비스에서 적용 예정이에요. 데모는 서버 없이 이 브라우저에만 저장해요.</li></ul>
+<h3>2. 쓰는 목적</h3><p>회원 확인과 만 14세 이상 확인, 이용 제한 회원의 재가입 막기, 홈피·게시판 운영, 신고 처리와 부정 이용 막기, 구슬 결제·환불, (동의한 분만) 이벤트 알림.</p>
+<h3>3. 보관 기간</h3><ul><li>탈퇴하면 30일 뒤 지워요(그 전에 다시 로그인하면 되살아남).</li><li>다른 회원에게 피해를 줘 이용이 막힌 사람은 1년 동안 다시 가입할 수 없어요. 이걸 확인하려고 카카오·네이버 계정 정보를 알아볼 수 없게 바꿔서(해시) 1년만 보관하고, 그 뒤 지워요.</li><li>법이 정한 기록은 그 기간만 따로 보관해요: 결제·환불 기록 5년, 소비자 불만 처리 기록 3년(전자상거래법), 접속 기록(통신비밀보호법, 기간은 ${POLICY_TODO}).</li><li class="gray">위 보관·삭제는 실서비스에서 적용 예정이에요. 데모는 서버 없이 이 브라우저에만 저장해요.</li></ul>
 <h3>4. 다른 곳에 주기</h3><p>본인 동의나 법에 따른 요청이 없으면 다른 곳에 주지 않아요.</p>
-<h3>5. 맡기는 일(처리 위탁)</h3><table class="pt5"><tr><th>받는 곳</th><th>하는 일</th></tr><tr><td>카카오</td><td>로그인</td></tr><tr><td>${POLICY_TODO}</td><td>서버·데이터 보관</td></tr><tr><td>${POLICY_TODO}</td><td>구슬 결제</td></tr></table>
+<h3>5. 맡기는 일(처리 위탁)</h3><table class="pt5"><tr><th>받는 곳</th><th>하는 일</th></tr><tr><td>카카오</td><td>로그인</td></tr><tr><td>네이버</td><td>로그인</td></tr><tr><td>${POLICY_TODO}</td><td>서버·데이터 보관</td></tr><tr><td>${POLICY_TODO}</td><td>구슬 결제</td></tr></table>
 <p>서버가 해외에 있으면 나라·업체·옮기는 항목을 여기에 적어요. 홈피의 유튜브 노래를 틀면 유튜브(구글)에 접속 정보가 전달돼요.</p>
 <h3>6. 내 권리</h3><p>내 정보 화면에서 보고 고칠 수 있고, 탈퇴할 수 있어요. 열람·정정·삭제·처리 정지는 <a href="#/help">운영자에게 알리기</a>로 요청하면 10일 안에 답해요.</p>
 <h3>7. 지우는 방법</h3><p>파일은 복구할 수 없게 지우고, 종이 기록은 파쇄해요.</p>
 <h3>8. 안전 조치</h3><p>접근 권한 제한, 접속 기록 보관, 전송 구간 암호화, 비공개 글의 권한 검사를 서버에서 해요. <span class="gray">(실서비스에서 적용 예정 · 데모는 서버 없이 이 브라우저에만 저장해요)</span></p>
 <h3>9. 자동으로 모으는 것</h3><p>로그인 유지와 설정 저장에 브라우저 저장소를 써요. 광고 추적 쿠키는 쓰지 않아요.</p>
-<h3>10. 만 19세 미만</h3><p>만 19세 미만은 가입할 수 없고, 확인되면 바로 지워요.</p>
-<h3>11. 개인정보 보호책임자</h3><p>이름·연락처는 ${POLICY_TODO}.</p>
+<h3>10. 만 14세 미만 아동·10대 보호</h3><p>만 14세 미만 아동의 개인정보를 수집하지 않습니다. 만 14세 미만은 가입할 수 없고, 확인되면 바로 지워요.</p>
+<p>출생연도로 만 14~18세(10대) 회원을 구분해요. 10대 회원은 처음부터 검색·놀러가기에 안 보이고 방문록은 단짝만 쓸 수 있어요(본인이 안심 설정에서 바꿀 수 있어요). 어른 회원은 단짝이 아닌 10대 회원을 검색·추천·놀러가기에서 볼 수 없고, 먼저 단짝 신청이나 방문록을 남길 수 없어요(10대 회원이 먼저 보낸 단짝 신청은 받을 수 있어요). 10대 회원은 구슬을 충전할 수 없어요. 성적 접근·연락처 요구·만 14세 미만 의심 신고는 바로 가리고 가장 먼저 확인해요.</p>
+<h3>11. 개인정보 보호책임자·청소년보호책임자</h3><p>개인정보 보호책임자 이름·연락처는 ${POLICY_TODO}.</p><p>청소년보호책임자 이름·연락처(보호자 문의 창구)는 ${POLICY_TODO}.</p>
 <h3>12. 바뀔 때</h3><p>내용이 바뀌면 시행 7일 전에 공지해요.</p>` },
 };
 VIEWS.policy = k => ({ body: "v4p y5p", title: POLICY[k].title, html: portal("", `<section class="box pol5"><div class="box-h"><span class="ic">📄</span><h2 class="jua">${POLICY[k].title}</h2></div>${POLICY[k].html}</section>`, welcomeBox()) });

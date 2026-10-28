@@ -120,19 +120,32 @@ const blocked = (a, b) => !!(user(a) && (user(a).blocked || []).includes(b));  /
 const eitherBlocked = (a, b) => blocked(a, b) || blocked(b, a);
 // 나와 상대 사이에 차단이 있으면 서로 안 보이게
 const hiddenFromMe = id => { const m = me(); return !!(m && id && m.id !== id && eitherBlocked(m.id, id)); };
-const pval = (u, k) => prv(u)[k] || (k === "birthday" ? "friends" : "all");  // 안 정했으면 생일은 단짝 공개, 나머지는 전체공개
+// ---------- 10대 보호(교차 차단, 2026-10-29 사장님 결정): 나이 판정은 isTeen 하나로 ----------
+// shortcut: 출생연도만 알아 '올해-출생연도'로 본다. 14면 생일 전 13세일 수 있지만 거부하지 않고 10대로 둔다 — 실서비스에선 생일까지 받아 판정
+const isTeen = u => !!(u && !u.admin && u.birthYear && kst().y - u.birthYear <= 18);
+// 성인(또는 로그인 안 한 사람)이 단짝 아닌 10대에게 먼저 닿는 길을 막는다. 10대끼리·성인끼리는 그대로
+const teenLocked = (u, m = me()) => isTeen(u) && !(m && (m.id === u.id || isTeen(m) || isFriend(u.id, m.id)));
+const TEEN_MSG = "10대 회원을 보호하려고 단짝만 쓸 수 있어요.";
+// 사람 간 상호작용(방문록·기록 댓글·공감·단짝 신청·알림)은 모두 이 판정 하나로: m 이 u 에게 닿아도 되나
+const canReach = (m, u) => !!(m && u) && (m.id === u.id || (!eitherBlocked(m.id, u.id) && !isHidden(m) && !teenLocked(u, m)));
+// 단짝 맺기(수락·서로 신청): 신청한 쪽이 닿을 수 있고 받는 쪽도 신고로 가려지지 않아야
+const canPair = (from, to) => canReach(from, to) && !isHidden(to);
+const reachMsg = u => teenLocked(u) ? TEEN_MSG : isHidden(me()) ? "신고 확인 중이라 잠시 댓글·공감을 할 수 없어요." : "이 회원에게는 남길 수 없어요.";
+const pval = (u, k) => prv(u)[k] || (k === "birthday" || (k === "guest" && isTeen(u)) ? "friends" : "all");  // 안 정했으면 생일(10대는 방문록도)은 단짝, 나머지는 전체공개
 const fieldOk = (u, key) => canSee(pval(u, key), u.id);      // 생일·좋아하는 것·그 시절/요즘 나
-const findable = u => prv(u).search !== false && !hiddenFromMe(u.id); // 검색·인기·놀러가기·추천에 나오나
+const searchOn = u => prv(u).search ?? !isTeen(u);           // 모르는 사람에게 보이기: 10대는 기본 끔
+// 검색·인기·놀러가기·추천에 나오나. 10대는 스스로 켜도 성인 결과엔 안 나오고, 긴급 신고로 가려진 사람도 빠진다
+const findable = u => searchOn(u) && !hiddenFromMe(u.id) && !teenLocked(u) && !isHidden(u);
 const SCOPES = [["all", "전체공개"], ["friends", "단짝 공개"], ["me", "전체 비공개"]];  // 공개 범위 이름은 어디서나 이 세 가지
 const scopeLabel = s => (SCOPES.find(x => x[0] === s) || SCOPES[0])[1];
 function needLogin() {
   if (me()) return false;
-  toast("로그인이 필요해요. 카카오로 3초 만에 시작해요 ♡");
+  toast("로그인이 필요해요. 카카오·네이버로 3초 만에 시작해요 ♡");
   go(`#/login?next=${encodeURIComponent(location.hash || "#/")}`);
   return true;
 }
 function addFeed(to, from, text, link) {
-  if (!to || to === from || !user(to) || eitherBlocked(to, from)) return;  // 차단한 사이엔 알림도 안 간다
+  if (!to || to === from || !user(to) || (from !== "admin" && !canReach(user(from), user(to)))) return;  // 차단·가림·10대 보호로 닿을 수 없는 사이엔 알림도 안 간다
   if (DB.feed.some(f => f.to === to && f.from === from && f.link === link && f.text === text && !f.read)) return;  // 같은 알림 반복 방지
   DB.feed.unshift({ id: uid("n"), to, from, text, link, at: nowISO(), read: false });
   DB.feed = DB.feed.slice(0, 200);
@@ -297,7 +310,7 @@ document.addEventListener("click", e => {
 });
 document.addEventListener("submit", e => {
   const f = e.target.closest("form[data-form]"); if (!f) return;
-  e.preventDefault(); const fd = new FormData(f);
+  e.preventDefault(); const fd = new FormData(f, e.submitter);  // 누른 버튼 값(가입 카카오/네이버)도 담는다
   if (!FILTER_SKIP.has(f.dataset.form)) { const w = formHasBad(fd); if (w) return toast(BLOCK_MSG(w.w, w.part)); }  // 욕설·음란·혐오 표현 막기
   FORM[f.dataset.form]?.(f, fd);
 });

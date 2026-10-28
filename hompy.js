@@ -99,7 +99,7 @@ function hHome(u) {
     <div class="b-icons"><a href="#/h/${u.id}"><img src="${roomImg(u)}" alt=""><span>내 방</span></a><a href="#/h/${u.id}/diary"><img src="img/i_letter.png" alt=""><span>기록</span></a><a href="#/h/${u.id}/photo"><img src="img/i_camera.png" alt=""><span>앨범</span></a><a href="#/h/${u.id}/guest"><img src="img/i_heart.png" alt=""><span>방문록</span></a><a href="#/h/${u.id}/profile"><img src="img/i_cd.png" alt=""><span>프로필</span></a>${own ? `<a href="#/h/${u.id}/deco"><img src="img/i_bow.png" alt=""><span>꾸미기</span></a>` : ""}</div>
     <section class="y-win b-room"><div class="y-title"><span class="px">my_room.bmp</span><b class="jua">${own ? "내 방" : `${esc(u.nick)}의 방`}</b><span class="y-more rh5">${own ? `<a class="bv sm" href="#/h/${u.id}/deco">🎀 꾸미기</a>` : `${!m ? `<a class="bv sm pri" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/profile?ask=1`)}">♡ 단짝 신청</a>` : isFriend(u.id, m.id) ? `<span class="badge5">♡ 단짝</span>` : DB.requests.some(r => r.from === m.id && r.to === u.id) ? `<span class="badge5 gray">신청 보냈어요</span>` : `<button class="bv sm pri" data-act="freqsend" data-id="${u.id}">♡ 단짝 신청</button>`}<a class="bv sm" href="#/h/${u.id}/guest" aria-label="방문록 남기기">💌 방문록</a>`}</span></div>
       <div class="room5">${roomScene(u)}${own ? `<button class="memo hand" data-act="memo" title="한 줄 메모 바꾸기">${esc(u.memo || "한 줄 메모를 남겨 보세요 ✎")}</button>` : u.memo ? `<span class="memo hand">${esc(u.memo)}</span>` : ""}</div>
-      ${!m ? `<div class="cta5"><p class="hand">${esc(u.nick)}님 홈피에 놀러 왔어요 ♡</p><a class="btn-k" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/profile?ask=1`)}">💬 나도 만들고 단짝 신청하기</a><small class="gray">카카오로 3초면 돼요</small></div>` : ""}</section><!--ROOM_END-->
+      ${!m ? `<div class="cta5"><p class="hand">${esc(u.nick)}님 홈피에 놀러 왔어요 ♡</p><a class="btn-k" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/profile?ask=1`)}">💬 나도 만들고 단짝 신청하기</a><small class="gray">카카오·네이버로 3초면 돼요</small></div>` : ""}</section><!--ROOM_END-->
     <section class="y-win b-diary"><div class="y-title"><span class="px">diary.txt</span><b class="jua">최근 기록</b><a class="y-more" href="#/h/${u.id}/diary">더보기 ›</a></div>
       <ul class="lst5">${dys.map(d => `<li><a href="#/h/${u.id}/diary?d=${d.id}">${esc(d.title)}</a><em class="px">${md(d.at)}</em></li>`).join("") || `<li><span class="gray">${own ? "첫 기록을 남겨 보세요 ✎" : "아직 공개된 기록이 없어요"}</span></li>`}</ul></section>
     <section class="y-win b-album"><div class="y-title"><span class="px">photo.jpg</span><b class="jua">앨범</b><a class="y-more" href="#/h/${u.id}/photo">더보기 ›</a></div>
@@ -128,17 +128,17 @@ function setMood(u, mood) {
 ACT.freqsend = el => {
   if (!me()) return go(`#/login?next=${encodeURIComponent(`#/h/${el.dataset.id}/profile?ask=1`)}`);  // 가입하고 오면 신청이 이어진다
   const to = el.dataset.id, m = me();
-  if (eitherBlocked(m.id, to)) return toast("차단 관계라 단짝 신청을 할 수 없어요.");
   if (DB.requests.some(r => r.from === m.id && r.to === to)) return toast("이미 신청했어요. 상대가 받아 주면 단짝이 돼요.");
   const back = DB.requests.find(r => r.from === to && r.to === m.id);
-  if (back) { DB.requests = DB.requests.filter(r => r !== back); m.friends.push(to); user(to).friends.push(m.id); save(); toast("서로 신청해서 바로 단짝이 됐어요 ♡"); return refresh(); }
+  if (back && canPair(user(to), m)) { DB.requests = DB.requests.filter(r => r !== back); m.friends.push(to); user(to).friends.push(m.id); save(); toast("서로 신청해서 바로 단짝이 됐어요 ♡"); return refresh(); }  // 10대가 먼저 보낸 신청은 받아 줄 수 있다
+  if (!canReach(m, user(to))) return toast(eitherBlocked(m.id, to) ? "차단 관계라 단짝 신청을 할 수 없어요." : isHidden(m) ? "신고 확인 중이라 잠시 단짝 신청을 할 수 없어요." : `${TEEN_MSG} 10대 회원이 먼저 신청하면 받아 줄 수 있어요.`);
   modal({ title: `${nick(to)}님께 단짝 신청`, body: `<label class="fld"><span>어떤 사이예요? (선택)</span><input class="inp5 grow" name="rel" maxlength="12" placeholder="예: 고딩 짝꿍"></label>`, ok: "신청하기 ♡",
     onOk: d => { DB.requests.push({ id: uid("q"), from: m.id, to, rel: (d.get("rel") || "").trim(), at: nowISO() }); if (user(to).settings.notify.friend) addFeed(to, m.id, "님이 단짝을 신청했어요.", "#/my"); save(); toast("단짝 신청을 보냈어요 ♡"); } });
 };
 
 // ---------- 기록 ----------
 function hDiary(u) {
-  const m = me(), own = m && m.id === u.id, now = kst();
+  const m = me(), own = m && m.id === u.id, now = kst(), reach = m ? canReach(m, u) : !teenLocked(u);  // 로그인 전엔 폼을 보여 주고 제출 때 로그인 안내
   const [qy, qm] = /^\d{4}-\d{2}$/.test(R.q.m || "") ? R.q.m.split("-").map(Number) : [0, 0];
   const [y, mo] = qy >= 2000 && qy <= 2100 && qm >= 1 && qm <= 12 ? [qy, qm] : [now.y, now.m];
   const all = DB.diaries.filter(d => d.owner === u.id && canSee(d.scope, u.id) && seeHidden(d)).sort((a, b) => b.at.localeCompare(a.at));
@@ -167,9 +167,9 @@ function hDiary(u) {
       ${isHidden(d) ? `<div class="warn5">🚫 신고로 다른 사람에게 가려져 있어요. ${own ? appealBtn(d) : ""}</div>` : ""}
       <h4 class="jua">${esc(d.title)}</h4><div class="hand">${para(d.body)}</div>
       ${d.from ? `<p><a class="lnk" href="#/p/${esc(d.from)}">원래 글 보기 ›</a></p>` : ""}
-      <div class="dy-f"><button class="lnkbtn" data-act="dlike" data-id="${d.id}">♡ 공감 ${d.likes.length}</button> · 💬 댓글 ${d.comments.filter(c => !hiddenFromMe(c.author)).length}${own ? ` · <button class="lnkbtn" data-act="ddel" data-id="${d.id}">지우기</button>` : m ? ` · <a href="#/report/diary:${d.id}">신고</a>` : ""}</div>
+      <div class="dy-f">${reach ? `<button class="lnkbtn" data-act="dlike" data-id="${d.id}">♡ 공감 ${d.likes.length}</button>` : `<span>♡ 공감 ${d.likes.length}</span>`} · 💬 댓글 ${d.comments.filter(c => !hiddenFromMe(c.author)).length}${own ? ` · <button class="lnkbtn" data-act="ddel" data-id="${d.id}">지우기</button>` : m ? ` · <a href="#/report/diary:${d.id}">신고</a>` : ""}</div>
       ${d.comments.filter(c => !hiddenFromMe(c.author)).map(c => `<div class="reply"><b>${esc(nick(c.author))}</b> ${esc(shown(c.author, c.text))}</div>`).join("")}
-      <form class="cw sm" data-form="dcomment" data-id="${d.id}"><input class="inp5 grow" name="text" maxlength="200" placeholder="댓글 달기" aria-label="기록 댓글"><button class="pbtn sm">등록</button></form>
+      ${reach ? `<form class="cw sm" data-form="dcomment" data-id="${d.id}"><input class="inp5 grow" name="text" maxlength="200" placeholder="댓글 달기" aria-label="기록 댓글"><button class="pbtn sm">등록</button></form>` : `<p class="warn5">${reachMsg(u)}</p>`}
     </article>`; }).join("") || empty(own ? "이 달엔 아직 기록이 없어요. 오늘 하루를 남겨 볼까요?" : "보여줄 수 있는 기록이 없어요.")}`;
   return { body: hBody(u), title: `${u.title} · 기록`, html: hompyFrame(u, "diary", win("diary.txt", "기록", body)) };
 }
@@ -181,13 +181,14 @@ FORM.diary = (f, d) => {
   if (save()) { toast("기록을 남겼어요 ♡"); go(`#/h/${m.id}/diary`); }
 };
 const diaryOf = el => DB.diaries.find(x => x.id === el.dataset.id);
-ACT.dlike = el => { if (needLogin()) return; const d = diaryOf(el); if (toggle(d.likes, me().id)) addFeed(d.owner, me().id, "님이 내 기록에 공감했어요.", `#/h/${d.owner}/diary?d=${d.id}`); save(); refresh(); };
+ACT.dlike = el => { if (needLogin()) return; const d = diaryOf(el); if (!d) return; if (!canReach(me(), user(d.owner))) return toast(reachMsg(user(d.owner))); if (toggle(d.likes, me().id)) addFeed(d.owner, me().id, "님이 내 기록에 공감했어요.", `#/h/${d.owner}/diary?d=${d.id}`); save(); refresh(); };
 ACT.ddel = el => modal({ title: "기록 지우기", body: "<p>이 기록을 지울까요?</p>", ok: "지우기", danger: true, onOk: () => { const d = diaryOf(el); if (!d || !me() || d.owner !== me().id) return; DB.diaries = DB.diaries.filter(x => x.id !== el.dataset.id); save(); refresh(withQ({ d: "" })); } });
 FORM.dcomment = (f, d) => {
   if (needLogin()) return;
   const t = (d.get("text") || "").trim(); if (!t) return;
   const dy = DB.diaries.find(x => x.id === f.dataset.id);
   if (!dy || !canSee(dy.scope, dy.owner) || hiddenFromMe(dy.owner)) return toast("볼 수 없는 기록이에요.");
+  if (!canReach(me(), user(dy.owner))) return toast(reachMsg(user(dy.owner)));
   dy.comments.push({ id: uid("c"), author: me().id, text: t.slice(0, 200), at: nowISO() });
   addFeed(dy.owner, me().id, "님이 내 기록에 댓글을 남겼어요.", `#/h/${dy.owner}/diary?d=${dy.id}`);
   save(); refresh();
@@ -239,9 +240,9 @@ function hGuest(u) {
   const m = me(), own = m && m.id === u.id;
   const list = DB.guests.filter(g => g.owner === u.id).sort((a, b) => b.at.localeCompare(a.at));
   const rel = id => { const r = DB.requests.find(x => x.from === id && x.to === u.id); return isFriend(u.id, id) ? "단짝" : r ? "단짝 신청 중" : ""; };
-  const gp = prv(u).guest || "all", canWrite = own || (m && (gp === "all" || (gp === "friends" && isFriend(u.id, m.id))));
+  const gp = pval(u, "guest"), canWrite = own || (canReach(m, u) && (gp === "all" || (gp === "friends" && isFriend(u.id, m.id))));
   const body = `<h3 class="sec-h jua">💌 방문록 <span class="sec-r">전체 ${list.filter(g => !hiddenFromMe(g.author)).length}${own ? ` · 쓰기: ${{ all: "누구나", friends: "단짝만", off: "닫음" }[gp]} <a class="lnk" href="#/my?sec=safe">바꾸기</a>` : ""}</span></h3>
-    ${!m ? `<p class="warn5">로그인하면 남길 수 있어요. <a class="lnk" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/guest`)}">로그인</a></p>` : !canWrite ? `<p class="warn5">${gp === "off" ? "주인이 방문록을 닫아 두었어요." : "단짝만 방문록을 남길 수 있는 홈피예요."}</p>` : `<form class="gw" data-form="guest"><img class="av" src="${avSrc(m.id)}" alt=""><textarea class="gw-in hand" name="text" maxlength="300" placeholder="놀러 왔으면 한 줄 남기고 가기 ♪" aria-label="방문록"></textarea>
+    ${!m ? `<p class="warn5">로그인하면 남길 수 있어요. <a class="lnk" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/guest`)}">로그인</a></p>` : !canWrite ? `<p class="warn5">${gp === "off" ? "주인이 방문록을 닫아 두었어요." : teenLocked(u) ? TEEN_MSG : isHidden(m) ? "신고 확인 중이라 잠시 방문록을 쓸 수 없어요." : "단짝만 방문록을 남길 수 있는 홈피예요."}</p>` : `<form class="gw" data-form="guest"><img class="av" src="${avSrc(m.id)}" alt=""><textarea class="gw-in hand" name="text" maxlength="300" placeholder="놀러 왔으면 한 줄 남기고 가기 ♪" aria-label="방문록"></textarea>
       <div class="gw-f"><label class="chk"><input type="checkbox" name="secret"> 비밀로 하기</label><button class="pbtn sm">남기기</button></div></form>${SAFE_NOTE}`}
     ${list.map(g => {
       if (hiddenFromMe(g.author)) return "";
@@ -259,8 +260,8 @@ FORM.guest = (f, d) => {
   if (needLogin()) return;
   const t = (d.get("text") || "").trim(); if (!t) return toast("한 줄이라도 써 주세요 :)");
   const owner = byHandle(R.path[1])?.id; if (!owner) return;
-  const gp = prv(user(owner)).guest || "all";
-  if (owner !== me().id && (eitherBlocked(owner, me().id) || gp === "off" || (gp === "friends" && !isFriend(owner, me().id)))) return toast("이 홈피에는 방문록을 남길 수 없어요.");
+  const gp = pval(user(owner), "guest");
+  if (owner !== me().id && (!canReach(me(), user(owner)) || gp === "off" || (gp === "friends" && !isFriend(owner, me().id)))) return toast("이 홈피에는 방문록을 남길 수 없어요.");
   DB.guests.unshift({ id: uid("g"), owner, author: me().id, text: t.slice(0, 300), secret: !!d.get("secret"), at: nowISO(), reply: "" });
   if (user(owner).settings.notify.guest) addFeed(owner, me().id, "님이 방문록을 남겼어요.", `#/h/${owner}/guest`);
   save(); toast("방문록을 남겼어요 ♡"); refresh();
