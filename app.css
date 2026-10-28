@@ -613,3 +613,18 @@ body.bigtext .cv-info .dact5 .bv { font-size: 16px !important; min-height: 44px 
 body.bigtext .np5-pp, body.bigtext .np5-pp img { width: 40px; height: 40px; }
 /* 재생·멈춤 버튼 60%로(사장님) — 누르는 칸은 36px 유지 */
 .np5-pp, .np5-pp[aria-pressed="true"] { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; margin-left: 2px; } .np5-pp img { width: 20px; height: 20px; } body.bigtext .np5-pp { width: 40px; height: 40px; } body.bigtext .np5-pp img { width: 24px; height: 24px; }
+
+/* 이용약관·개인정보 처리방침 */
+.pol5 h3 { font-size: 15px; margin: 16px 0 6px; }
+.pol5 p, .pol5 li, .pol5 td, .pol5 th { font-size: 14px; line-height: 1.6; }
+.pol5 ul { padding-left: 18px; margin: 0; }
+.pol5-m { max-height: 60vh; overflow: auto; text-align: left; }
+.pt5 { border-collapse: collapse; width: 100%; }
+.pt5 th, .pt5 td { border: 1px solid #e2d8fb; padding: 5px 8px; text-align: left; vertical-align: top; }
+.pt5 th { background: #f7f3ff; }
+.todo5 { color: #c0397a; font-weight: 700; }
+.agr5 { display: flex; align-items: center; gap: 6px; }
+.agr5 .lnkbtn { font-size: 13px; white-space: nowrap; }
+.agn5 { font-size: 12px; color: #6b7285; margin: 2px 0 6px 24px; line-height: 1.5; }
+.agn5 b { color: #333; }
+.pt5 td:first-child { white-space: nowrap; }

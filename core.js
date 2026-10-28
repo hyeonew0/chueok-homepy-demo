@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 // 저장소·라우터·공통 도구.
 // shortcut: 데이터와 로그인이 이 브라우저(localStorage)에만 있다 — 실서비스는 Supabase(RLS) + 카카오 로그인으로 바꾼다.
 
@@ -250,6 +250,7 @@ function route() {
       : a === "admin" ? V.admin()
       : a === "search" ? V.search()
       : a === "help" ? V.help()
+      : a === "terms" || a === "privacy" ? V.policy(a)
       : a === "go" ? V.goRandom()
       : a === "h" ? V.hompy(b, c || "home")
       : null;

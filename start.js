@@ -1,4 +1,4 @@
-﻿"use strict";
+"use strict";
 // 로그인(카카오 흉내)·가입 2단계: ① 카카오로 시작(약관) → ② 캐릭터·닉네임 고르면 끝.
 // 홈피 주소는 자동으로 만들고, 동네·생일·주소 바꾸기·꾸미기는 나중에(마이페이지·꾸미기).
 // shortcut: 카카오 로그인은 흉내만 낸다 — 실서비스는 카카오 OAuth(닉네임·프로필·출생연도만) 연동.
@@ -30,9 +30,11 @@ VIEWS.login = () => {
     <form class="frm" data-form="login">
       ${back ? "" : `<div class="agree"><label class="rad all"><input type="checkbox" data-change="agreeall"> <b>전체 동의</b></label>
         <label class="rad"><input type="checkbox" name="age" class="ag" required> [필수] 만 19세 이상이에요</label>
-        <label class="rad"><input type="checkbox" name="terms" class="ag" required> [필수] 이용약관</label>
-        <label class="rad"><input type="checkbox" name="privacy" class="ag" required> [필수] 개인정보 수집·이용</label>
-        <label class="rad"><input type="checkbox" name="mkt" class="ag"> [선택] 이벤트·혜택 알림</label></div>`}
+        <span class="agr5"><label class="rad"><input type="checkbox" name="terms" class="ag" required> [필수] 이용약관</label><button type="button" class="lnkbtn lnk" data-act="policy" data-k="terms">보기</button></span>
+        <span class="agr5"><label class="rad"><input type="checkbox" name="privacy" class="ag" required> [필수] 개인정보 수집·이용</label><button type="button" class="lnkbtn lnk" data-act="policy" data-k="privacy">처리방침 보기</button></span>
+        <p class="agn5"><b>모으는 항목</b> 카카오 회원번호·닉네임·출생연도<br><b>목적</b> 회원 확인·만 19세 확인·홈피 운영·신고 처리<br><b>보관</b> 탈퇴 후 30일(법이 정한 기록은 그 기간)<br>동의하지 않을 수 있지만, 그러면 가입할 수 없어요.</p>
+        <label class="rad"><input type="checkbox" name="mkt" class="ag"> [선택] 이벤트·혜택 알림</label>
+        <p class="agn5">이벤트 소식을 알림으로 보내요. 동의하지 않아도 가입할 수 있고, 동의는 언제든 운영자에게 알려 철회할 수 있어요.</p></div>`}
       <button class="btn-k big">💬 카카오로 3초 만에 시작 <small>(데모)</small></button>
       <p class="ob-note">카카오에서 닉네임·출생연도만 받아요(프로필 사진은 쓰지 않아요). 추억홈피는 <b>만 19세 이상</b>만 가입할 수 있어요.<br>추억홈피는 다른 서비스와 관계없는 독립 서비스예요. 예전 데이터는 가져오지 않아요.</p>
       ${!back && askTarget(nextAfter()) ? `<p class="ob-note">가입하면 다음 화면에서 <b>${esc(askTarget(nextAfter()).nick)}</b>님께 단짝 신청을 보낼지 고를 수 있어요.</p>` : ""}
