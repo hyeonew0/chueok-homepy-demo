@@ -56,7 +56,7 @@ function hompyFrame(u, tab, inner, tpl) {
   const bar = `<header class="y-bar"><div class="y-in"><a class="y-logo" href="#/"><img src="img/i_star.png" alt=""><b class="jua">추억홈피</b><span class="px">since 2026</span></a>
     <span class="y-bar-r">${m ? `<a href="#/h/${m.id}">내 홈피</a>` : `<a href="#/login?next=${encodeURIComponent(`#/h/${u.id}`)}">로그인</a>`}<a href="#/go">놀러가기</a><a href="#/b/then">게시판</a>${m ? `<a href="#/my">마이페이지</a>` : ""}</span></div></header>
     <div class="y-marquee"><div class="mq-in"><span class="px">* welcome to my homepy *</span> <span class="jua">${own ? "오늘도 반짝반짝 빛나는 하루 ♡" : `${esc(u.nick)}님 홈피에 놀러 왔어요 ♡`}</span> <span class="px">* ${kstDate()} *</span></div></div>`;
-  const foot = `<footer class="y-foot"><div class="y-in"><span class="px">(c) 2026 chueok homepy</span> 추억홈피(가칭) · 데모 — 다른 서비스와 관계없는 독립 서비스입니다. <span class="hvsw">홈피 화면 비교: <button class="lnkbtn ${HV() === "a" ? "on" : ""}" data-act="hv" data-v="a">A안(표지 먼저)</button> · <button class="lnkbtn ${HV() === "b" ? "on" : ""}" data-act="hv" data-v="b">B+안(내 방 먼저)</button> · <button class="lnkbtn" data-act="hv" data-v="auto">자동(폰 B+·PC A)</button></span></div></footer>`;
+  const foot = `<footer class="y-foot"><div class="y-in"><span class="px">(c) 2026 chueok homepy</span> 추억홈피(가칭) · 데모 — 다른 서비스와 관계없는 독립 서비스입니다. <a href="#/terms">이용약관</a> · <a href="#/privacy"><b>개인정보 처리방침</b></a> <span class="hvsw">홈피 화면 비교: <button class="lnkbtn ${HV() === "a" ? "on" : ""}" data-act="hv" data-v="a">A안(표지 먼저)</button> · <button class="lnkbtn ${HV() === "b" ? "on" : ""}" data-act="hv" data-v="b">B+안(내 방 먼저)</button> · <button class="lnkbtn" data-act="hv" data-v="auto">자동(폰 B+·PC A)</button></span></div></footer>`;
   if (HV() === "b") {  // B안: 제목만 맨 위 → (소식 탭이면) 내 방 → 소개·기분·방문자 → 탭 → 나머지
     // 제목 줄: 작은 프리쿠라 + 테마 제목 + 방문자 수(TODAY·TOTAL)
     const head = `<section class="y-win cv-b"><div class="y-title"><span class="px">my_homepy.exe</span>${onlineTag(u)}<span class="y-btns" aria-hidden="true"><i>_</i><i>□</i><i>×</i></span></div>
@@ -117,7 +117,7 @@ ACT.memo = () => { const m = me(); modal({ title: "한 줄 메모", body: `<inpu
 ACT.sharemine = () => modal({ title: "친구에게 알리기", body: `<p>꾸민 홈피를 친구들에게 보여 주세요 ♡</p>
   <button type="button" class="btn-k" data-act="sharehome">💬 카톡·밴드로 보내기</button>
   <button type="button" class="bv" data-act="copylink">🔗 링크 복사</button>
-  <button type="button" class="bv" data-act="storycard">📷 인스타 스토리용 그림 저장</button>`, ok: "닫기", cancel: "" });
+  <button type="button" class="bv" data-act="storycard">📷 인스타 스토리용 그림 저장</button><p class="dnote5">데모라 친구 브라우저에선 이 홈피가 안 보여요.</p>`, ok: "닫기", cancel: "" });
 ACT.mood = () => { const m = me(); modal({ title: "지금 기분", body: `<div class="moods">${Object.entries(MOODS).map(([k, e]) => `<label class="rad"><input type="radio" name="m" value="${k}" ${k === m.mood ? "checked" : ""}>${e} ${k}</label>`).join("")}</div>`, ok: "바꾸기", onOk: d => setMood(m, d.get("m")) }); };
 function setMood(u, mood) {
   if (!MOODS[mood]) return;

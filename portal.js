@@ -206,7 +206,7 @@ FORM.comment = (f, d) => {
   save(); refresh();
 };
 ACT.appeal = el => modal({ title: "이의 신청", body: `<p class="gray">왜 가리면 안 되는지 적어 주세요. 운영자가 확인하고 알려 드려요.</p><textarea class="inp5 grow tall" name="t" required minlength="5" maxlength="500"></textarea>`, ok: "신청하기",
-  onOk: d => { const r = DB.reports.find(x => x.id === el.dataset.id); if (!r || !me() || reportOwner(r) !== me().id) return; r.status = "이의 신청"; r.log.push({ at: nowISO(), text: "이의 신청: " + d.get("t") }); save(); toast("이의 신청을 접수했어요."); refresh(); } });
+  onOk: d => { const r = DB.reports.find(x => x.id === el.dataset.id); if (!r || !me() || reportOwner(r) !== me().id) return; r.status = "이의 신청"; r.log.push({ at: nowISO(), text: "이의 신청: " + d.get("t") }); save(); toast("이의 신청을 접수했어요. 데모라 실제 운영자에게는 전달되지 않아요."); refresh(); } });
 
 // ---------- 글쓰기·수정 ----------
 let W = null;  // 쓰는 중인 글 (사진 첨부 때문에 화면 밖에 둔다)
@@ -317,7 +317,7 @@ VIEWS.report = (a, b) => {
         <div class="rp-target"><img src="${t.img ? safeSrc(t.img) : charSrc(t.author)}" alt=""><div><b>${esc(t.title)}</b><em>${esc(t.where)} · ${esc(nick(t.author))} · ${md(t.at)}</em></div></div>
         <fieldset class="rp-list"><legend class="sr">신고 사유 (하나 고르기)</legend>${Object.entries(RS).map(([k, [tx]]) => `<label class="rad"><input type="radio" name="reason" value="${k}" required>${tx}</label>`).join("")}</fieldset>
         <textarea class="inp5 grow tall" name="detail" maxlength="500" placeholder="어떤 부분이 문제인지 알려 주세요 (권리 침해·기타는 꼭 써 주세요)" aria-label="자세한 내용"></textarea>
-        ${isUser ? `<div class="warn5">사람 신고는 운영자가 그 사람이 쓴 글·댓글·방문록을 확인해요. 신고한 사람이 누군지는 상대에게 알리지 않아요.</div>` : `<div class="warn5">권리 침해(초상권·아이 사진·저작권) 신고는 바로 가려지고(최대 30일), 쓴 사람에게 알림이 가요. 쓴 사람은 이의를 신청할 수 있어요.</div>`}
+        ${isUser ? `<div class="warn5">사람 신고는 운영자가 그 사람이 쓴 글·댓글·방문록을 확인해요. 신고한 사람이 누군지는 상대에게 알리지 않아요.</div>` : `<div class="warn5">권리 침해(초상권·아이 사진·저작권·괴롭힘·저격·신상 노출) 신고는 바로 가려지고(최대 30일), 쓴 사람에게 알림이 가요. 쓴 사람은 이의를 신청할 수 있어요.</div>`}
         ${canBlock ? `<label class="chk"><input type="checkbox" name="autoblock" checked><span>🚫 신고하면서 <b>${esc(nick(t.author))}</b>님 차단하기<br><small class="gray">차단하면 서로의 홈피·글·댓글·방문록이 안 보이고, 단짝이면 단짝이 끊어져서 상대가 알 수도 있어요. 마이페이지 › 안심 설정에서 풀 수 있어요.</small></span></label>` : ""}
         <p class="warn5 strong">⚠ ${REPORT_WARN}</p>
         <div class="dact5"><a class="bv" href="${t.link}">취소</a><button class="bv pri">신고하기</button></div>
@@ -346,7 +346,7 @@ FORM.report = (f, d) => {
   if (quick && spec.type !== "user") addFeed(t.author, "admin", "님(운영자): 내가 쓴 내용 중 하나가 권리 침해 신고로 잠시 가려졌어요. 마이페이지에서 이의 신청할 수 있어요.", "#/my?sec=myreports");
   const blocked = !!d.get("autoblock") && blockUser(m, t.author);  // 신고하면서 차단(기본 켬, 끌 수 있음 — 사장님 결정 2026-10-27)
   if (blocked) r.log.push({ at: nowISO(), text: "신고한 사람이 자동 차단" });
-  save(); toast(`신고했어요.${quick ? " 바로 가렸어요." : " 운영자가 확인할게요."}${blocked ? ` ${nick(t.author)}님은 차단했어요.` : ""}`);
+  save(); toast(`신고했어요.${quick ? " 바로 가렸어요." : ""} 데모라 실제 운영자에게는 전달되지 않아요.${blocked ? ` ${nick(t.author)}님은 차단했어요.` : ""}`);
   go(t.link.startsWith(`#/h/${m.id}`) ? t.link : spec.type === "post" ? `#/b/${t.obj.board}` : spec.type === "comment" && !blocked ? t.link : "#/");  // 내 홈피에서 신고했으면 그대로 내 홈피로
 };
 
@@ -414,7 +414,7 @@ FORM.contact = (f, d) => {
   if (needLogin()) return;
   const text = (d.get("text") || "").trim(); if (text.length < 5) return toast("무슨 일인지 5자 이상 써 주세요.");
   DB.contacts = DB.contacts || []; DB.contacts.unshift({ id: uid("q"), from: me().id, where: (d.get("where") || "").trim().slice(0, 120), text: text.slice(0, 1000), at: nowISO(), status: "접수" });
-  save(); toast("운영자에게 보냈어요. 확인하고 마이페이지 새 소식으로 알려 드릴게요."); f.reset();
+  save(); toast("접수했어요. 데모라 실제 운영자에게는 전달되지 않아요."); f.reset();
 };
 ACT.logout = () => { DB.me = null; save(); toast("로그아웃했어요. 또 놀러 와요 ♡"); go("#/"); };
 ACT.reset = () => modal({ title: "데모 데이터 처음으로", body: "<p>이 브라우저에 저장된 글·홈피·꾸미기를 모두 지우고 처음 상태로 돌릴까요?</p>", ok: "처음으로", danger: true, onOk: () => { DB = seed(); W = null; save(); try { sessionStorage.clear(); } catch (e) {} toast("처음 상태로 돌렸어요."); go("#/"); } });
@@ -477,7 +477,7 @@ FORM.settings = (f, d) => {
   const sf = $('form[data-form="safe"]'); if (sf) applySafe(m, new FormData(sf));
   save(); toast("설정과 안심 설정을 저장했어요."); refresh();
 };
-ACT.charge = () => modal({ title: "구슬 충전 (데모)", body: `<p>데모라 실제 결제 없이 구슬을 넣어 드려요.</p><div class="frow">${[30, 50, 100].map((n, i) => `<label class="rad"><input type="radio" name="n" value="${n}" ${i === 1 ? "checked" : ""}>구슬 ${n}</label>`).join("")}</div>`, ok: "충전하기",
+ACT.charge = () => modal({ title: "구슬 충전 (데모)", body: `<p>데모라 실제 결제 없이 구슬을 넣어 드려요.</p><p class="gray">가격: 실서비스 가격 미정 · 산 지 7일 안 미사용분은 전액 환불, 유효기간 5년, 무료로 받은 구슬은 환불 대상이 아니에요.</p><div class="frow">${[30, 50, 100].map((n, i) => `<label class="rad"><input type="radio" name="n" value="${n}" ${i === 1 ? "checked" : ""}>구슬 ${n}</label>`).join("")}</div>`, ok: "충전하기",
   onOk: d => { const m = me(), n = +d.get("n"); m.beads += n; m.beadLog.push({ t: "충전(데모)", n, paid: true, at: nowISO() }); save(); toast(`구슬 ${n}개를 넣었어요.`); refresh(); } });
 ACT.refund = () => { const m = me(); if (!m.beads) return toast("환불할 구슬이 없어요."); modal({ title: "환불 신청", body: `<p>쓰지 않은 구슬 <b>${m.beads}</b>개를 환불 신청할까요?</p><p class="gray">실서비스: 산 지 7일 안 미사용분은 전액, 그 뒤엔 수수료를 빼고 돌려드려요. 유료 구슬 유효기간은 5년이고, 서비스가 끝나면 남은 유료 구슬은 전액 돌려드려요. 무료로 받은 구슬은 환불 대상이 아니에요. 데모라 실제 환불은 없어요.</p>`, ok: "신청하기",
   onOk: () => { if (!m.beads) return toast("환불할 구슬이 없어요."), false; m.beadLog.push({ t: "환불 신청", n: -m.beads, at: nowISO() }); m.beads = 0; save(); toast("환불 신청을 접수했어요."); refresh(); } }); };
@@ -559,7 +559,7 @@ const POLICY = {
   terms: { title: "이용약관", html: `
 <p class="gray">시행일 ${POLICY_TODO} · 데모용 초안이에요.</p>
 <h3>제1조 (목적)</h3><p>이 약관은 추억홈피(이하 ‘서비스’)를 쓰는 회원과 운영자 사이의 권리·의무와 책임을 정합니다.</p>
-<h3>제2조 (가입)</h3><ul><li>만 19세 이상만 가입할 수 있어요. 카카오 계정으로 가입하고, 출생연도로 나이를 확인해요.</li><li>남의 정보로 가입하면 이용이 제한될 수 있어요.</li></ul>
+<h3>제2조 (가입)</h3><ul><li>만 19세 이상만 가입할 수 있어요. 카카오 계정으로 가입하고, 출생연도로 나이를 확인해요. <span class="gray">(실서비스에서 적용 예정 · 데모는 본인 체크만 하고 이 브라우저에만 저장해요)</span></li><li>남의 정보로 가입하면 이용이 제한될 수 있어요.</li></ul>
 <h3>제3조 (게시물)</h3><ul><li>홈피·게시판에 올린 글·사진의 저작권은 쓴 사람에게 있어요.</li><li>운영자는 서비스 안에서 보여 주는 데 필요한 범위(크기 조절·미리보기 등)에서만 게시물을 써요.</li><li>다른 사람이 나온 사진은 그 사람의 동의를 받고 올려야 해요.</li></ul>
 <h3>제4조 (하면 안 되는 일)</h3><ul><li>남의 사진·실명·연락처를 동의 없이 올리기, 욕설·비방·괴롭힘</li><li>음란·불법 정보, 광고·판매 글, 음원 파일 올리기</li><li>서비스를 망가뜨리거나 다른 사람 계정을 쓰는 일</li></ul>
 <h3>제5조 (신고와 임시조치)</h3><p>권리 침해 신고가 들어오면 게시물을 최대 30일 가리고 쓴 사람에게 알려요. 쓴 사람은 이의를 신청할 수 있어요(정보통신망법 제44조의2).</p>
@@ -578,13 +578,13 @@ const POLICY = {
 <tr><td>구슬 결제 시</td><td>결제·환불 기록(카드번호는 결제대행사만 가져요)</td></tr></table>
 <p>프로필 사진, 전화번호, 실명은 모으지 않아요. 사진 속 촬영 위치 정보는 올릴 때 지워요.</p>
 <h3>2. 쓰는 목적</h3><p>회원 확인과 만 19세 확인, 홈피·게시판 운영, 신고 처리와 부정 이용 막기, 구슬 결제·환불, (동의한 분만) 이벤트 알림.</p>
-<h3>3. 보관 기간</h3><ul><li>탈퇴하면 30일 뒤 지워요(그 전에 다시 로그인하면 되살아남).</li><li>법이 정한 기록은 그 기간만 따로 보관해요: 결제·환불 기록 5년, 소비자 불만 처리 기록 3년(전자상거래법), 접속 기록 3개월(통신비밀보호법).</li></ul>
+<h3>3. 보관 기간</h3><ul><li>탈퇴하면 30일 뒤 지워요(그 전에 다시 로그인하면 되살아남).</li><li>법이 정한 기록은 그 기간만 따로 보관해요: 결제·환불 기록 5년, 소비자 불만 처리 기록 3년(전자상거래법), 접속 기록 3개월(통신비밀보호법) (기간 확인 필요).</li><li class="gray">위 보관·삭제는 실서비스에서 적용 예정이에요. 데모는 서버 없이 이 브라우저에만 저장해요.</li></ul>
 <h3>4. 다른 곳에 주기</h3><p>본인 동의나 법에 따른 요청이 없으면 다른 곳에 주지 않아요.</p>
 <h3>5. 맡기는 일(처리 위탁)</h3><table class="pt5"><tr><th>받는 곳</th><th>하는 일</th></tr><tr><td>카카오</td><td>로그인</td></tr><tr><td>${POLICY_TODO}</td><td>서버·데이터 보관</td></tr><tr><td>${POLICY_TODO}</td><td>구슬 결제</td></tr></table>
 <p>서버가 해외에 있으면 나라·업체·옮기는 항목을 여기에 적어요. 홈피의 유튜브 노래를 틀면 유튜브(구글)에 접속 정보가 전달돼요.</p>
 <h3>6. 내 권리</h3><p>내 정보 화면에서 보고 고칠 수 있고, 탈퇴할 수 있어요. 열람·정정·삭제·처리 정지는 <a href="#/help">운영자에게 알리기</a>로 요청하면 10일 안에 답해요.</p>
 <h3>7. 지우는 방법</h3><p>파일은 복구할 수 없게 지우고, 종이 기록은 파쇄해요.</p>
-<h3>8. 안전 조치</h3><p>접근 권한 제한, 접속 기록 보관, 전송 구간 암호화, 비공개 글의 권한 검사를 서버에서 해요.</p>
+<h3>8. 안전 조치</h3><p>접근 권한 제한, 접속 기록 보관, 전송 구간 암호화, 비공개 글의 권한 검사를 서버에서 해요. <span class="gray">(실서비스에서 적용 예정 · 데모는 서버 없이 이 브라우저에만 저장해요)</span></p>
 <h3>9. 자동으로 모으는 것</h3><p>로그인 유지와 설정 저장에 브라우저 저장소를 써요. 광고 추적 쿠키는 쓰지 않아요.</p>
 <h3>10. 만 19세 미만</h3><p>만 19세 미만은 가입할 수 없고, 확인되면 바로 지워요.</p>
 <h3>11. 개인정보 보호책임자</h3><p>이름 ${POLICY_TODO} · 연락처 ${POLICY_TODO}</p>

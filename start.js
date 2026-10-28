@@ -120,7 +120,7 @@ function obDone(m) {
   return ob(0, "완성", `<h2 class="ob-h jua">🎉 ${esc(m.title)}가<br>생겼어요!</h2>
     <div class="done"><div class="mini-hp"><div class="mh-top"><span>오늘 <b class="or">0</b> · 지금까지 0</span><b class="jua">✦ ${esc(m.title)} ✦</b></div>
       <div class="mh-body"><img class="mh-av" src="${avSrc(m.id)}" alt=""><div class="mh-room">${roomScene(m)}</div></div></div>
-      <div class="addr-box"><span>추억홈피.kr/@${esc(m.handle)}</span><button class="pbtn ghost sm" data-act="copylink">링크 복사</button></div></div>
+      <div class="addr-box"><span>추억홈피.kr/@${esc(m.handle)}</span><button class="pbtn ghost sm" data-act="copylink">링크 복사</button></div><p class="dnote5">데모라 친구 브라우저에선 이 홈피가 안 보여요.</p></div>
     <div class="later5"><b class="jua">나중에 해도 되는 것</b><ul>
       <li><a href="#/h/${m.id}/deco">🎀 방·배경·레이아웃 꾸미기</a></li>
       <li><a href="#/my">🌦 내 동네(창밖 날씨) · 생일 · 홈피 주소 바꾸기</a></li></ul></div>

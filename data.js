@@ -59,12 +59,14 @@ const REGIONS = {  // 시·도 대표 좌표 (창밖 날씨용)
 };
 const REPORT_REASONS = {
   face: ["내 얼굴이 동의 없이 올라왔어요 (초상권)", true], abuse: ["욕설·비방·명예훼손", false], ad: ["광고·도배", false],
-  child: ["아이(미성년자)가 나온 사진이에요", true], illegal: ["음란·불법 정보", false], copy: ["저작권 침해", true], etc: ["기타", false],
+  child: ["아이(미성년자)가 나온 사진이에요", true], illegal: ["음란·불법 정보", false], copy: ["저작권 침해", true],
+  harass: ["괴롭힘·저격", true], doxx: ["신상 노출(실명·연락처·주소)", true], etc: ["기타", false],
 };  // true = 권리 침해 신고라 바로 가림(최대 30일)
 // 사람(계정) 신고 사유 — 글이 아니라 사람의 행동을 신고한다
 const USER_REPORT_REASONS = {
   harass: ["괴롭힘·스토킹·따라다님", false], abuse: ["욕설·비방·명예훼손", false], fake: ["다른 사람인 척해요 (사칭)", false],
-  spam: ["광고·도배 계정", false], illegal: ["음란·불법 정보", false], minor: ["만 19세 미만으로 보여요", false], etc: ["기타", false],
+  spam: ["광고·도배 계정", false], illegal: ["음란·불법 정보", false], minor: ["만 19세 미만으로 보여요", false],
+  sexual: ["성적 접근·만남 요구", false], money: ["돈 요구·사기", false], contact: ["연락처·주소 요구", false], etc: ["기타", false],
 };
 // 신고하는 화면 모두에 넣는 안내(사장님 지시)
 const REPORT_WARN = "사실대로 한 신고는 걱정하지 않으셔도 돼요. 다만 근거 없이 의도적으로 한 신고(허위·보복·괴롭힘 목적)는 확인 후 경고·이용 제한 등 조치될 수 있어요.";

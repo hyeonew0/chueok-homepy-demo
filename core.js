@@ -260,7 +260,7 @@ function route() {
   document.body.className = out.body + (me()?.settings?.big ? " bigtext" : "");  // 큰 글씨 설정
   document.title = (out.title ? maskBad(out.title) + " — " : "") + "추억홈피";
   $$(".oe-done").forEach(x => x.remove()); document.body.classList.remove("oe-mode");  // 순서 편집 모드의 아래 띠는 화면이 바뀌면 지운다
-  $("#app").innerHTML = out.html;
+  $("#app").innerHTML = `<p class="demo5" role="note"><b>✦ 체험용 데모예요</b> · 숫자·글·접속중 표시는 예시이고, 데이터는 이 브라우저에만 저장돼요</p>` + out.html;
   { const m = me(); if (m && Date.now() - Date.parse(m.lastSeen || 0) > 6e4) { m.lastSeen = nowISO(); save(); } }  // 내 접속 시각(1분에 한 번만 저장)
   mqStart(); document.fonts && document.fonts.ready.then(mqStart);  // 글꼴을 다 불러온 뒤 길이를 다시 잰다
   npStart(); document.fonts && document.fonts.ready.then(npStart);

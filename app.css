@@ -628,3 +628,6 @@ body.bigtext .np5-pp, body.bigtext .np5-pp img { width: 40px; height: 40px; }
 .agn5 { font-size: 12px; color: #6b7285; margin: 2px 0 6px 24px; line-height: 1.5; }
 .agn5 b { color: #333; }
 .pt5 td:first-child { white-space: nowrap; }
+.demo5 { margin: 0; padding: 3px 16px; background: #fff3fa; border-bottom: 1px dashed #e3b8d6; color: #7a4a6e; font-size: 12px; line-height: 1.5; text-align: center; }
+.demo5 b { font-family: "Jua", sans-serif; font-weight: 400; }
+.dnote5 { margin: 6px 0 0; font-size: 12px; color: #6b7285; }
