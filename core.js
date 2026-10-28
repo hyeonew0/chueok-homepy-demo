@@ -101,9 +101,9 @@ const alive = u => u && !u.withdrawnAt && !u.admin;
 const nick = id => { const u = user(id); return !u ? "알 수 없음" : u.withdrawnAt ? "탈퇴한 사용자" : u.nick; };
 const charSrc = id => { const u = user(id); return `img/p_${u && CHARS[u.char] ? u.char : "beanie"}.png`; };
 // 프로필 사진: 올린 사진이 있으면 그것(작은 칸은 정사각 썸네일, 크게는 원본), 없으면 캐릭터
-// 접속 중: 나 자신, 최근 5분 안에 움직인 사람(데모는 demoOnline). 주인이 숨기면 남에게는 안 보인다
+// 접속 중: 나 자신, 최근 5분 안에 움직인 사람(데모는 demoOnline). 단짝에게만 보이고, 주인이 숨기면 단짝에게도 안 보인다
 const isOnline = u => !!u && ((me() && me().id === u.id) || u.demoOnline || Date.now() - Date.parse(u.lastSeen || 0) < 5 * 6e4);
-const onlineTag = u => { const own = me() && me().id === u.id; if (!own && u.settings.hideOnline) return ""; const on = isOnline(u);
+const onlineTag = u => { const own = me() && me().id === u.id; if (!own && (u.settings.hideOnline || !(me() && isFriend(u.id, me().id)))) return ""; const on = isOnline(u);
   return `<span class="ol5 ${on ? "on" : "off"}"><i aria-hidden="true"></i><span class="sr">${esc(u.nick)} </span>${on ? "접속중" : "접속하지 않음"}${own && u.settings.hideOnline ? `<span aria-hidden="true"> 🔒</span><span class="sr"> (나만 보여요)</span>` : ""}</span>`; };
 const avSrc = id => { const u = user(id); return u && u.pic && u.pic.thumb ? safeSrc(u.pic.thumb) : charSrc(id); };
 // 크게 볼 때: 원본. 단 아주 넓거나(2:1 초과) 아주 작은(짧은 변 300px 미만) 사진은 띠·점이 되니 맞춘 정사각으로
@@ -120,7 +120,8 @@ const blocked = (a, b) => !!(user(a) && (user(a).blocked || []).includes(b));  /
 const eitherBlocked = (a, b) => blocked(a, b) || blocked(b, a);
 // 나와 상대 사이에 차단이 있으면 서로 안 보이게
 const hiddenFromMe = id => { const m = me(); return !!(m && id && m.id !== id && eitherBlocked(m.id, id)); };
-const fieldOk = (u, key) => canSee(prv(u)[key] || "all", u.id);      // 생일·좋아하는 것·그 시절/요즘 나
+const pval = (u, k) => prv(u)[k] || (k === "birthday" ? "friends" : "all");  // 안 정했으면 생일은 단짝 공개, 나머지는 전체공개
+const fieldOk = (u, key) => canSee(pval(u, key), u.id);      // 생일·좋아하는 것·그 시절/요즘 나
 const findable = u => prv(u).search !== false && !hiddenFromMe(u.id); // 검색·인기·놀러가기·추천에 나오나
 const SCOPES = [["all", "전체공개"], ["friends", "단짝 공개"], ["me", "전체 비공개"]];  // 공개 범위 이름은 어디서나 이 세 가지
 const scopeLabel = s => (SCOPES.find(x => x[0] === s) || SCOPES[0])[1];

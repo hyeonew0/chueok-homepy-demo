@@ -240,9 +240,9 @@ function hGuest(u) {
   const m = me(), own = m && m.id === u.id;
   const list = DB.guests.filter(g => g.owner === u.id).sort((a, b) => b.at.localeCompare(a.at));
   const rel = id => { const r = DB.requests.find(x => x.from === id && x.to === u.id); return isFriend(u.id, id) ? "단짝" : r ? "단짝 신청 중" : ""; };
-  const gp = prv(u).guest || "all", canWrite = own || (gp === "all" || (gp === "friends" && m && isFriend(u.id, m.id)));
+  const gp = prv(u).guest || "all", canWrite = own || (m && (gp === "all" || (gp === "friends" && isFriend(u.id, m.id))));
   const body = `<h3 class="sec-h jua">💌 방문록 <span class="sec-r">전체 ${list.filter(g => !hiddenFromMe(g.author)).length}${own ? ` · 쓰기: ${{ all: "누구나", friends: "단짝만", off: "닫음" }[gp]} <a class="lnk" href="#/my?sec=safe">바꾸기</a>` : ""}</span></h3>
-    ${!canWrite ? `<p class="warn5">${gp === "off" ? "주인이 방문록을 닫아 두었어요." : "단짝만 방문록을 남길 수 있는 홈피예요."}</p>` : `<form class="gw" data-form="guest"><img class="av" src="${m ? avSrc(m.id) : "img/p_beanie.png"}" alt=""><textarea class="gw-in hand" name="text" maxlength="300" placeholder="${m ? "놀러 왔으면 한 줄 남기고 가기 ♪" : "로그인하고 한 줄 남겨 주세요 ♪"}" aria-label="방문록"></textarea>
+    ${!m ? `<p class="warn5">로그인하면 남길 수 있어요. <a class="lnk" href="#/login?next=${encodeURIComponent(`#/h/${u.id}/guest`)}">로그인</a></p>` : !canWrite ? `<p class="warn5">${gp === "off" ? "주인이 방문록을 닫아 두었어요." : "단짝만 방문록을 남길 수 있는 홈피예요."}</p>` : `<form class="gw" data-form="guest"><img class="av" src="${avSrc(m.id)}" alt=""><textarea class="gw-in hand" name="text" maxlength="300" placeholder="놀러 왔으면 한 줄 남기고 가기 ♪" aria-label="방문록"></textarea>
       <div class="gw-f"><label class="chk"><input type="checkbox" name="secret"> 비밀로 하기</label><button class="pbtn sm">남기기</button></div></form>`}
     ${list.map(g => {
       if (hiddenFromMe(g.author)) return "";
@@ -283,7 +283,7 @@ function hProfile(u) {
     : `<div class="prof-top"><div class="purikura small"><img src="${avSrc(u.id)}" alt=""><span class="px">since ${new Date(u.joinedAt).getFullYear()}</span></div>
         <div><h2 class="jua">${esc(u.nick)}</h2><p class="hand">${esc(u.intro)}</p>
           <div class="chips5"><span class="c5 mood"><img src="img/i_heart.png" alt="">지금 기분 · ${esc(u.mood)}</span>${own && u.region ? `<span class="c5"><img src="img/i_sun.png" alt="">${esc(u.region)} <small>(나만 보여요)</small></span>` : ""}</div></div></div>
-      <table class="ptbl">${[["birthday", "생일"], ["likes", "좋아하는 것"], ["then", "그 시절 나"], ["now", "요즘 나"]].filter(([k]) => fieldOk(u, k)).map(([k, n]) => `<tr><th>${n}</th><td>${esc(u[k] || "-")}${own && prv(u)[k] && prv(u)[k] !== "all" ? ` <em class="gray">(${scopeLabel(prv(u)[k])})</em>` : ""}</td></tr>`).join("")}</table>
+      <table class="ptbl">${[["birthday", "생일"], ["likes", "좋아하는 것"], ["then", "그 시절 나"], ["now", "요즘 나"]].filter(([k]) => fieldOk(u, k)).map(([k, n]) => `<tr><th>${n}</th><td>${esc(u[k] || "-")}${own && pval(u, k) !== "all" ? ` <em class="gray">(${scopeLabel(pval(u, k))})</em>` : ""}</td></tr>`).join("")}</table>
       ${!own && m ? `<p class="acts"><button class="lnkbtn gray" data-act="block" data-id="${u.id}">🚫 이 사람 차단하기</button> · <a class="gray" href="#/report/user:${u.id}">🚨 이 사람 신고하기</a></p>` : ""}
       <h3 class="th-h jua">♡ 오늘의 기분 기록</h3><div class="moodlog">${u.moodLog.map(x => `<span>${esc(x.d)} ${esc(x.mood)}</span>`).join("") || `<span>${esc(u.mood)}</span>`}</div>`;
   const reqSent = m && DB.requests.some(r => r.from === m.id && r.to === u.id);

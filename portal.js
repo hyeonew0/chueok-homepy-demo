@@ -441,7 +441,7 @@ VIEWS.my = () => {
         <tr><th>알림</th><td><label class="chk"><input type="checkbox" name="n_guest" ${s.notify.guest ? "checked" : ""}> 방문록</label> · <label class="chk"><input type="checkbox" name="n_friend" ${s.notify.friend ? "checked" : ""}> 단짝 신청</label> · <label class="chk"><input type="checkbox" name="n_comment" ${s.notify.comment ? "checked" : ""}> 게시판 댓글</label> · <label class="chk"><input type="checkbox" name="n_visit" ${s.notify.visit !== false ? "checked" : ""}> 단짝 방문(놀러왔어요)</label></td></tr>
         <tr><th>방문 기록</th><td><label class="chk"><input type="checkbox" name="hide_visits" ${s.hideVisits ? "checked" : ""}> 오늘·전체 방문자 수를 다른 사람에게 숨기기</label> <em>(나는 계속 볼 수 있어요)</em></td></tr>
         <tr><th>노래 자동 재생</th><td><label class="chk"><input type="checkbox" name="bgm_auto" ${s.bgmAuto !== false ? "checked" : ""}> 다른 홈피에 놀러 가면 그 홈피 노래를 자동으로 틀기</label> <em>(꺼도 ▶️를 누르면 들을 수 있어요)</em></td></tr>
-        <tr><th>접속 표시</th><td><label class="chk"><input type="checkbox" name="hide_online" ${s.hideOnline ? "checked" : ""}> 내가 접속 중인지 다른 사람에게 숨기기</label></td></tr>
+        <tr><th>접속 표시</th><td><label class="chk"><input type="checkbox" name="hide_online" ${s.hideOnline ? "checked" : ""}> 단짝에게도 내 접속 중 숨기기</label> <em>(단짝이 아니면 원래 안 보여요)</em></td></tr>
         <tr><th>홈피 주소</th><td><span class="inp addr sm5"><span class="pre">추억홈피.kr/@</span><input name="handle" value="${esc(m.handle || m.id)}" maxlength="15" data-input="idcheck" aria-label="홈피 주소" aria-describedby="idmsg" autocapitalize="off" spellcheck="false"><span class="ok" id="idmsg" aria-live="polite"></span></span> <em>(가입할 때 자동으로 만들었어요. 영문 소문자·숫자·_ 3~15자)</em></td></tr>
         <tr><th>생일 날짜</th><td><select class="sel5" name="bm" aria-label="월"><option value="">월</option>${Array.from({ length: 12 }, (_, i) => `<option ${bm === i + 1 ? "selected" : ""}>${i + 1}</option>`).join("")}</select> <select class="sel5" name="bd" aria-label="일"><option value="">일</option>${Array.from({ length: 31 }, (_, i) => `<option ${bd === i + 1 ? "selected" : ""}>${i + 1}</option>`).join("")}</select> <em>(선택 · 누구에게 보일지는 아래 안심 설정에서)</em></td></tr>
         <tr><th>내 동네</th><td><select class="sel5" name="region" aria-label="내 동네"><option value="">선택 안 함</option>${Object.keys(REGIONS).map(r => `<option ${r === m.region ? "selected" : ""}>${r}</option>`).join("")}</select> <em>(선택 · 창밖 날씨에만 쓰고 다른 사람에겐 안 보여요)</em></td></tr>
@@ -519,7 +519,7 @@ ACT.openfeed = el => {
 
 // ---------- 안심 설정 화면·차단 ----------
 function safeBox(m) {
-  const p = prv(m), sc = (k, d = "all") => p[k] || d;
+  const p = prv(m), sc = k => pval(m, k);
   const row = (k, n, L = SCOPES) => `<tr><th>${n}</th><td>${L.map(([v, t]) => `<label class="rad"><input type="radio" name="p_${k}" value="${v}" ${sc(k) === v ? "checked" : ""}>${t}</label>`).join("")}</td></tr>`;
   const bl = (m.blocked || []).filter(user);
   return `<section class="box" id="safe"><div class="box-h"><span class="ic">🛡</span><h2 class="jua" style="font-size:18px">안심 설정</h2><span class="sub">누가 무엇을 볼 수 있는지 정해요</span></div>
