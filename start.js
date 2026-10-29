@@ -40,8 +40,9 @@ VIEWS.login = () => {
         <label class="rad"><input type="checkbox" name="mkt" class="ag"> [선택] 이벤트·혜택 알림</label>
         <p class="agn5">이벤트 소식을 알림으로 보내요. 동의하지 않아도 가입할 수 있고, 동의는 언제든 운영자에게 알려 철회할 수 있어요.</p></div>
       <label class="fld"><span>출생연도 <small>(데모라 직접 골라요 · 실서비스는 카카오·네이버에서 받아요)</small></span><select class="inp" name="by" required data-change="byask"><option value="">고르기</option>${Array.from({ length: 81 }, (_, i) => kst().y - 10 - i).map(y => `<option value="${y}">${y}년</option>`).join("")}</select></label>`}
-      <button class="btn-k big" name="via" value="kakao">💬 카카오로 3초 만에 시작 <small>(데모)</small></button>
-      <button class="btn-k big btn-n" name="via" value="naver">네이버로 3초 만에 시작 <small>(데모)</small></button>
+      <button class="btn-k big" name="via" value="kakao">💬 카카오로 3초 만에 시작 <small>(${AUTH.enabled ? "시험 연동 중" : "데모"})</small></button>
+      <button class="btn-k big btn-n" name="via" value="naver">네이버로 3초 만에 시작 <small>(${AUTH.enabled ? "시험 연동 중" : "데모"})</small></button>
+      ${AUTH.enabled ? `<p class="warn5">시험 연동 중이에요. 로그인은 실제 카카오·네이버로 하지만, 홈피·글 데이터는 아직 이 브라우저에만 저장돼요.</p>` : ""}
       <p class="ob-note">카카오·네이버에서 닉네임·출생연도만 받아요(프로필 사진·친구 목록은 받지 않아요). 카카오·네이버 친구에게 내 홈피가 알려지지 않아요. 추억홈피는 <b>만 14세 이상</b>만 가입할 수 있어요. 아이디·비밀번호 가입은 없어요.<br>추억홈피는 다른 서비스와 관계없는 독립 서비스예요. 예전 데이터는 가져오지 않아요.</p>
       ${!back && invBy() ? (invFriendOk(invBy()) ? `<p class="warn5">🎁 친구 초대 링크로 오셨어요. ${esc(INVITE_FRIEND_NOTE)}<br><small class="gray">초대만으로 단짝이 되지는 않아요.</small></p>` : `<p class="ob-note">친구 초대 링크로 오셨어요. 초대만으로 단짝이 되지는 않아요.</p>`) : ""}
       ${!back && askTarget(nextAfter()) ? `<p class="ob-note" id="askn" hidden>가입하면 다음 화면에서 <b>${esc(askTarget(nextAfter()).nick)}</b>님께 단짝 신청을 보낼지 고를 수 있어요.</p>` : ""}
@@ -51,18 +52,28 @@ VIEWS.login = () => {
 // 단짝 신청 안내는 다음 화면에 체크박스가 나올 때(나이대가 같을 때)만 보인다
 CHG.byask = el => { const t = askTarget(nextAfter()), p = $("#askn"); if (t && p) p.hidden = !el.value || isTeen(t) !== isTeen({ birthYear: +el.value }); };
 CHG.agreeall = el => $$(".ag").forEach(c => c.checked = el.checked);
+// 이 브라우저의 기존 계정으로 다시 로그인 (탈퇴 30일 안이면 되살림)
+function loginBack(back) {
+  if (back.withdrawnAt && Date.now() - new Date(back.withdrawnAt) < 30 * 864e5) { delete back.withdrawnAt; toast("다시 오셨네요! 홈피를 되살렸어요 ♡"); }
+  else if (back.withdrawnAt) { DB.myId = null; save(); return refresh(); }
+  DB.me = back.id; save(); return go(nextAfter() || `#/h/${back.id}`);
+}
+// 실제 로그인(AUTH.enabled)에서 돌아온 뒤: 가입 중이면 2단계(캐릭터)로, 이 브라우저 계정이 있으면 다시 로그인
+AUTH.afterLogin = u => {
+  const P = DB.pending, back = DB.myId && DB.users[DB.myId];
+  if (P && P.authWait) { delete P.authWait; P.via = u.provider === "naver" ? "naver" : "kakao"; P.nick = String(u.nickname || P.nick).slice(0, 10); save(); return go("#/start/2"); }
+  if (back) return loginBack(back);
+  route();
+};
 FORM.login = (f, d) => {
   const back = DB.myId && DB.users[DB.myId];
-  if (back) {  // 이 브라우저의 기존 계정으로 다시 로그인 (탈퇴 30일 안이면 되살림)
-    if (back.withdrawnAt && Date.now() - new Date(back.withdrawnAt) < 30 * 864e5) { delete back.withdrawnAt; toast("다시 오셨네요! 홈피를 되살렸어요 ♡"); }
-    else if (back.withdrawnAt) { DB.myId = null; save(); return refresh(); }
-    DB.me = back.id; save(); return go(nextAfter() || `#/h/${back.id}`);
-  }
+  if (back) return AUTH.enabled ? AUTH.signIn(d.get("via") === "naver" ? "naver" : "kakao") : loginBack(back);
   if (!d.get("age") || !d.get("terms") || !d.get("privacy")) return toast("필수 약관에 모두 동의해 주세요. (전체 동의를 누르면 한 번에 돼요)");
   const by = +d.get("by"); if (!by) return toast("출생연도를 골라 주세요.");
   if (kst().y - by < 14) return toast("만 14세 이상만 가입할 수 있어요.");  // 14(생일 전 13세일 수 있음)는 받고 10대로 둔다 — isTeen 참고
   // 데모: 카카오·네이버에서 받은 닉네임 대신 임시 닉네임을 넣어 둔다(바로 고칠 수 있음)
   DB.pending = { via: d.get("via") === "naver" ? "naver" : "kakao", mkt: !!d.get("mkt"), next: nextAfter(), nick: `추억친구${Math.floor(100 + Math.random() * 900)}`, char: "", tone: "", big: false, birthYear: by, inv: invBy()?.id || "" };
+  if (AUTH.enabled) { DB.pending.authWait = true; save(); return AUTH.signIn(DB.pending.via); }  // 동의·출생연도는 로그인 전에 받는다(인터페이스 문서 3장)
   save(); go("#/start/2");
 };
 
@@ -77,7 +88,7 @@ VIEWS.start = step => {
     <a class="btn-k big" href="#/login">💬 카카오·네이버로 3초 만에 시작</a>
     <p class="ob-note">카카오·네이버 로그인 → 캐릭터 고르기, <b>두 단계면 끝</b>. 홈피 주소는 자동으로 생겨요.<br>추억홈피는 다른 서비스와 관계없는 독립 서비스예요. 예전 데이터는 가져오지 않아요.</p>
     <div class="ob-mini"><span>🏠 지금까지 만든 홈피 <b class="or">${num(Object.values(DB.users).filter(alive).length)}</b>개</span><span>💌 오늘 놀러간 횟수 <b class="or">${num(Object.values(DB.users).reduce((s, u) => s + (u.today.d === kst().key ? u.today.n : 0), 0))}</b>번</span></div>`);
-  if (!P) return { redirect: "#/login" };
+  if (!P || P.authWait) return { redirect: "#/login" };  // 실제 로그인을 끝내지 않았으면 2단계로 못 간다
   if (step !== 2) return { redirect: "#/start/2" };
   // 캐릭터는 미리 골라 두지 않는다(남성이 모르고 여자 캐릭터로 가입하던 문제). 방 톤·글씨 크기도 여기서 고른다.
   return ob(2, "캐릭터·이름", `<h2 class="ob-h2 jua">내 캐릭터와 방을 골라 주세요</h2>

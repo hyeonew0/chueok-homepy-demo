@@ -443,7 +443,7 @@ FORM.contact = (f, d) => {
   DB.contacts = DB.contacts || []; DB.contacts.unshift({ id: uid("q"), from: me().id, where: (d.get("where") || "").trim().slice(0, 120), text: text.slice(0, 1000), at: nowISO(), status: "접수" });
   save(); toast("접수했어요. 데모라 실제 운영자에게는 전달되지 않아요."); f.reset();
 };
-ACT.logout = () => { DB.me = null; save(); toast("로그아웃했어요. 또 놀러 와요 ♡"); go("#/"); };
+ACT.logout = () => { AUTH.enabled && AUTH.signOut(); DB.me = null; save(); toast("로그아웃했어요. 또 놀러 와요 ♡"); go("#/"); };
 
 // ---------- 마이페이지 ----------
 VIEWS.my = () => {
